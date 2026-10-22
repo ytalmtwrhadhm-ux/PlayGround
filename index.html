@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#070b10" />
+  <title>المدرّج — مبارياتك بجودة سينمائية</title>
+  <meta name="description" content="المدرّج: تطبيق مشاهدة المباريات بجودة 4K، مع التشكيلات، البطاقات، الإحصائيات والبث المباشر." />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
+  <script>
+    try {
+      var t = localStorage.getItem('madraj-theme');
+      if (t) document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <span class="ambient__orb ambient__orb--a"></span>
+    <span class="ambient__orb ambient__orb--b"></span>
+    <span class="ambient__grid"></span>
+  </div>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#/home" aria-label="المدرّج — الرئيسية">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40" fill="none">
+            <rect x="3" y="3" width="34" height="34" rx="11" stroke="currentColor" stroke-width="2.4" opacity=".55"/>
+            <path d="M20 10.5l6.4 4.6-2.4 7.5h-8l-2.4-7.5L20 10.5z" fill="currentColor"/>
+            <path d="M20 29.5v-6.9M13.6 15.1l-5.2-1.4M26.4 15.1l5.2-1.4M13.2 24.2l-4.4 3.4M26.8 24.2l4.4 3.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="brand__text">
+          <strong>المدرّج</strong>
+          <small>EL MADRAJ · 4K</small>
+        </span>
+      </a>
+
+      <nav class="side-nav" aria-label="التنقل الرئيسي">
+        <p class="side-nav__label">القائمة الرئيسية</p>
+        <a class="side-link" data-nav="home" href="#/home">
+          <span class="side-link__icon" data-icon="home"></span>
+          <span>الرئيسية</span>
+        </a>
+        <a class="side-link" data-nav="live" href="#/live">
+          <span class="side-link__icon" data-icon="live"></span>
+          <span>مباشر الآن</span>
+          <span class="side-link__count" id="live-count">3</span>
+        </a>
+        <a class="side-link" data-nav="matches" href="#/matches">
+          <span class="side-link__icon" data-icon="calendar"></span>
+          <span>المباريات</span>
+        </a>
+        <a class="side-link" data-nav="leagues" href="#/leagues">
+          <span class="side-link__icon" data-icon="trophy"></span>
+          <span>الدوريات</span>
+        </a>
+        <a class="side-link" data-nav="favorites" href="#/favorites">
+          <span class="side-link__icon" data-icon="star"></span>
+          <span>مفضلاتي</span>
+        </a>
+        <p class="side-nav__label">حسابك</p>
+        <a class="side-link" data-nav="profile" href="#/profile">
+          <span class="side-link__icon" data-icon="user"></span>
+          <span>الملف الشخصي</span>
+        </a>
+      </nav>
+
+      <div class="side-promo" id="side-promo"></div>
+
+      <div class="sidebar__foot">
+        <button class="theme-toggle" data-action="theme" aria-label="تبديل المظهر">
+          <span class="theme-toggle__icon" data-icon="moon"></span>
+          <span class="theme-toggle__text">الوضع الليلي</span>
+          <span class="theme-switch" aria-hidden="true"><i></i></span>
+        </button>
+        <p class="sidebar__note">بث تجريبي تفاعلي لأغراض العرض</p>
+      </div>
+    </aside>
+
+    <div class="app-main">
+      <header class="topbar">
+        <button class="icon-btn topbar__menu" data-action="menu" aria-label="القائمة">
+          <span data-icon="menu"></span>
+        </button>
+        <div class="page-heading">
+          <h1 id="page-title">الرئيسية</h1>
+          <p id="page-subtitle">كل المباريات، في مكان واحد</p>
+        </div>
+
+        <button class="search-trigger" data-action="search">
+          <span data-icon="search"></span>
+          <span class="search-trigger__text">ابحث عن مباراة أو لاعب…</span>
+          <kbd>⌘ K</kbd>
+        </button>
+
+        <div class="topbar__actions">
+          <span class="topbar__live"><i></i> مباشر</span>
+          <button class="icon-btn" data-action="notifications" aria-label="الإشعارات">
+            <span data-icon="bell"></span>
+            <i class="dot" id="notif-dot" hidden></i>
+          </button>
+          <button class="avatar-btn" data-route="profile" aria-label="الملف الشخصي">
+            <span class="avatar">م</span>
+          </button>
+        </div>
+      </header>
+
+      <main id="view" class="view" tabindex="-1"></main>
+
+      <footer class="app-foot">
+        <span>المدرّج © 2026</span>
+        <span class="app-foot__sep"></span>
+        <span>مباريات · تشكيلات · 4K · إحصائيات</span>
+        <span class="app-foot__spacer"></span>
+        <span class="badge-soft">بيانات وبث تجريبي</span>
+      </footer>
+    </div>
+    <div id="drawer-scrim" class="drawer-scrim" data-action="close-menu" hidden></div>
+  </div>
+
+  <nav class="mobile-nav" aria-label="التنقل السريع">
+    <a data-nav="home" href="#/home"><span data-icon="home"></span><b>الرئيسية</b></a>
+    <a data-nav="live" href="#/live"><span data-icon="live"></span><b>مباشر</b></a>
+    <a data-nav="matches" href="#/matches"><span data-icon="calendar"></span><b>المباريات</b></a>
+    <a data-nav="favorites" href="#/favorites"><span data-icon="star"></span><b>مفضلاتي</b></a>
+    <a data-nav="profile" href="#/profile"><span data-icon="user"></span><b>حسابي</b></a>
+  </nav>
+
+  <div class="mini-player" id="mini-player" hidden></div>
+  <div id="toast-root" class="toast-root" aria-live="polite"></div>
+  <div id="modal-root"></div>
+  <div id="search-root"></div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/icons.js"></script>
+  <script src="assets/views.js"></script>
+  <script src="assets/sim.js"></script>
+  <script src="assets/features.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
