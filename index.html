@@ -1,0 +1,2045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0a1212">
+<title>FADEHOUSE — Barber Simulator</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a1212'/%3E%3Ctext x='32' y='45' text-anchor='middle' font-family='Georgia,serif' font-size='38' fill='%23e7b86b'%3EF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,600;0,6..96,700;1,6..96,600&family=DM+Sans:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#071010;--ink-2:#0c1918;--panel:rgba(9,22,21,.78);--panel-2:rgba(13,29,27,.92);
+  --line:rgba(241,224,197,.14);--line-strong:rgba(241,224,197,.28);
+  --cream:#f4e8d3;--muted:#aab9b1;--gold:#e7b86b;--gold-bright:#ffd99a;
+  --mint:#6fe4c1;--coral:#ff7697;--cyan:#63e8ff;--accent:#ff7697;--accent-2:#63e8ff;
+  --shadow:0 24px 70px rgba(0,0,0,.5);--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+  --ease:cubic-bezier(.2,.8,.2,1)
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--ink);color:var(--cream);font-family:'DM Sans',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+body{left:0;top:0;position:fixed;touch-action:none;-webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+svg{display:block}
+.icon{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;background:#071010}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:2;background:radial-gradient(ellipse at 50% 47%,transparent 36%,rgba(0,0,0,.24) 86%),linear-gradient(to bottom,rgba(2,8,8,.3),transparent 22%,transparent 70%,rgba(2,8,8,.54));mix-blend-mode:multiply}
+#grain{position:fixed;inset:0;z-index:3;pointer-events:none;opacity:.032;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.hidden{display:none!important}
+.eyebrow{font-family:'Bebas Neue',sans-serif;letter-spacing:.22em;font-size:11px;color:var(--gold);text-transform:uppercase}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border-radius:999px;border:1px solid var(--line);background:rgba(8,22,21,.55);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--mint);box-shadow:0 0 9px var(--mint)}
+#loader{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:radial-gradient(circle at 50% 42%,rgba(26,62,53,.55),transparent 48%),#071010;transition:opacity .7s var(--ease),visibility .7s}
+#loader.done{opacity:0;visibility:hidden}
+.loader-mark{width:86px;height:86px;border:1px solid rgba(231,184,107,.42);border-radius:50%;display:grid;place-items:center;position:relative;font-family:'Bodoni Moda',serif;font-size:34px;color:var(--gold)}
+.loader-mark::before,.loader-mark::after{content:'';position:absolute;border-radius:50%;inset:-7px;border:1px solid transparent;border-top-color:var(--gold);animation:spin 1.8s linear infinite}
+.loader-mark::after{inset:-14px;border-top-color:rgba(111,228,193,.45);animation-duration:3s;animation-direction:reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-title{font-family:'Bebas Neue',sans-serif;letter-spacing:.35em;font-size:13px;margin-left:.35em}
+.loader-tip{font-size:11px;color:var(--muted);letter-spacing:.08em;text-align:center;max-width:280px;line-height:1.7}
+.loader-line{width:160px;height:2px;background:rgba(255,255,255,.09);overflow:hidden;border-radius:99px}
+.loader-line i{display:block;height:100%;width:46%;background:linear-gradient(90deg,transparent,var(--gold),transparent);animation:loadline 1.2s ease-in-out infinite}
+@keyframes loadline{0%{transform:translateX(-110%)}100%{transform:translateX(330%)}}
+#webglFallback{position:fixed;inset:0;z-index:101;display:none;place-items:center;text-align:center;padding:30px;background:#071010}
+#startScreen{position:fixed;inset:0;z-index:30;display:flex;align-items:stretch;pointer-events:none;transition:opacity .8s var(--ease),visibility .8s}
+#startScreen.hide{opacity:0;visibility:hidden;pointer-events:none}
+#startScreen::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(4,11,11,.97) 0%,rgba(4,11,11,.84) 34%,rgba(4,11,11,.22) 64%,rgba(4,11,11,.05) 100%),linear-gradient(0deg,rgba(4,11,11,.72),transparent 40%);pointer-events:none}
+.start-inner{position:relative;z-index:2;width:min(620px,100%);display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,5vw,72px);padding-top:calc(clamp(24px,5vw,72px) + var(--safe-t));pointer-events:auto}
+.brand{display:flex;align-items:center;gap:14px;margin-bottom:clamp(30px,7vh,72px)}
+.brand-sigil{width:43px;height:43px;border:1px solid rgba(231,184,107,.48);border-radius:50%;display:grid;place-items:center;color:var(--gold);font-family:'Bodoni Moda',serif;font-size:20px;position:relative;flex:0 0 auto}
+.brand-sigil::after{content:'';position:absolute;inset:4px;border-radius:50%;border:1px solid rgba(231,184,107,.14)}
+.brand-mark{font-family:'Bebas Neue',sans-serif;font-size:25px;letter-spacing:.16em;line-height:1}
+.brand-sub{font-size:8px;letter-spacing:.34em;color:var(--muted);margin-top:5px}
+.start-kicker{display:flex;align-items:center;gap:10px;color:var(--gold);font-family:'Bebas Neue',sans-serif;letter-spacing:.24em;font-size:11px;margin-bottom:16px}
+.start-kicker::before{content:'';width:28px;height:1px;background:var(--gold);opacity:.6}
+.start-title{font-family:'Bodoni Moda',serif;font-weight:600;font-size:clamp(48px,7.6vw,94px);line-height:.9;letter-spacing:-.045em;margin:0;color:var(--cream);text-shadow:0 20px 70px rgba(0,0,0,.4)}
+.start-title em{font-weight:600;color:var(--gold);font-style:italic}
+.start-title span{display:block}
+.start-copy{max-width:420px;color:#b8c6bd;line-height:1.7;font-size:clamp(12px,1.4vw,14px);margin:24px 0 30px}
+.start-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.btn-primary{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:12px;padding:17px 24px;min-height:56px;border-radius:7px;background:linear-gradient(135deg,var(--gold-bright),var(--gold) 60%,#c7984f);color:#1a1308;font-family:'Bebas Neue',sans-serif;letter-spacing:.13em;font-size:17px;box-shadow:0 14px 36px rgba(231,184,107,.19),inset 0 1px 0 rgba(255,255,255,.45);overflow:hidden;transition:transform .25s var(--ease),box-shadow .25s var(--ease)}
+.btn-primary::after{content:'';position:absolute;top:-100%;left:-50%;width:40%;height:300%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);transform:rotate(24deg);transition:left .7s var(--ease)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 18px 46px rgba(231,184,107,.28),inset 0 1px 0 rgba(255,255,255,.45)}
+.btn-primary:hover::after{left:130%}
+.btn-primary:active{transform:translateY(0)}
+.btn-ghost{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:56px;padding:0 22px;border:1px solid var(--line-strong);border-radius:7px;background:rgba(4,14,13,.28);font-family:'Bebas Neue',sans-serif;letter-spacing:.12em;font-size:14px;color:var(--cream);transition:background .25s,border-color .25s}
+.btn-ghost:hover{background:rgba(255,255,255,.06);border-color:rgba(231,184,107,.45)}
+.start-meta{display:flex;gap:26px;margin-top:40px;flex-wrap:wrap}
+.start-meta div{display:flex;flex-direction:column;gap:4px}
+.start-meta b{font-family:'Bodoni Moda',serif;font-size:22px;font-weight:600}
+.start-meta span{font-family:'Bebas Neue',sans-serif;color:var(--muted);font-size:10px;letter-spacing:.17em}
+.start-side{position:relative;z-index:2;flex:1;display:flex;align-items:flex-end;justify-content:flex-end;padding:28px;padding-bottom:calc(28px + var(--safe-b));pointer-events:none}
+.start-note{pointer-events:auto;max-width:250px;padding:18px 19px;border-radius:9px;background:rgba(6,19,18,.62);border:1px solid rgba(244,232,211,.12);backdrop-filter:blur(12px)}
+.start-note strong{display:block;font-family:'Bebas Neue',sans-serif;letter-spacing:.16em;font-size:12px;color:var(--gold);margin-bottom:8px}
+.start-note p{margin:0;font-size:11px;line-height:1.65;color:var(--muted)}
+.start-note .keys{display:flex;gap:9px;margin-top:13px;align-items:center;color:#c9d4cc;font-size:10px}
+.kbd{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:4px;border:1px solid var(--line-strong);background:rgba(255,255,255,.04);font-size:9px;font-weight:700}
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none}
+#hud>*{pointer-events:auto}
+.topbar{position:absolute;top:calc(16px + var(--safe-t));left:16px;right:16px;display:flex;align-items:center;gap:16px;justify-content:space-between}
+.mini-brand{display:flex;align-items:center;gap:10px;pointer-events:none}
+.mini-brand .brand-sigil{width:35px;height:35px;font-size:15px}
+.mini-brand .brand-mark{font-size:18px}
+.mini-brand .brand-sub{font-size:7px;margin-top:4px}
+.top-center{display:flex;align-items:center;gap:9px}
+.session-pill{padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:rgba(7,19,18,.64);backdrop-filter:blur(14px);font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:.14em;color:#bdcac1;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.session-pill b{color:var(--cream);font-weight:400}
+.top-actions{display:flex;align-items:center;gap:7px}
+.icon-btn{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);background:rgba(7,19,18,.6);backdrop-filter:blur(12px);color:#d6e0d9;transition:border-color .2s,background .2s,transform .2s}
+.icon-btn:hover{border-color:rgba(231,184,107,.45);background:rgba(231,184,107,.08);transform:translateY(-1px)}
+.icon-btn .icon{width:17px;height:17px}
+.coin-pill{display:flex;align-items:center;gap:9px;padding:8px 13px 8px 9px;border-radius:999px;border:1px solid rgba(231,184,107,.25);background:linear-gradient(135deg,rgba(231,184,107,.14),rgba(7,19,18,.75));backdrop-filter:blur(12px);height:38px}
+.coin-orb{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,var(--gold-bright),#b68136);color:#35220b;font-family:'Bodoni Moda',serif;font-size:12px;font-weight:700;box-shadow:inset 0 1px 1px rgba(255,255,255,.5)}
+.coin-pill b{font-size:13px;letter-spacing:.03em;min-width:28px;text-align:right;font-variant-numeric:tabular-nums}
+.coin-pill.bump{animation:coinbump .4s var(--ease)}
+@keyframes coinbump{50%{transform:scale(1.09);border-color:var(--gold)}}
+.request-card{position:absolute;left:18px;top:calc(76px + var(--safe-t));width:292px;border-radius:10px;padding:15px 16px 14px;overflow:hidden;background:linear-gradient(155deg,rgba(15,35,32,.9),rgba(7,17,17,.86));border:1px solid var(--line);box-shadow:0 18px 48px rgba(0,0,0,.32);backdrop-filter:blur(18px) saturate(1.15)}
+.request-card::before{content:'';position:absolute;left:0;top:15px;bottom:15px;width:2px;background:linear-gradient(var(--accent),transparent)}
+.client-head{display:flex;align-items:center;gap:11px;margin-bottom:13px}
+.avatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 28%,rgba(255,255,255,.2),transparent 42%),linear-gradient(145deg,#244b42,#132d29);border:1px solid rgba(244,232,211,.18);font-family:'Bodoni Moda',serif;font-size:15px;position:relative;flex:0 0 auto}
+.avatar::after{content:'';position:absolute;right:-1px;bottom:0;width:9px;height:9px;border-radius:50%;background:var(--mint);border:2px solid #102320}
+.client-meta{min-width:0}
+.client-meta .eyebrow{font-size:9px;color:var(--muted);letter-spacing:.16em}
+.client-meta h2{margin:2px 0 0;font-family:'Bodoni Moda',serif;font-size:19px;font-weight:600;line-height:1;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.style-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 0 9px;border-top:1px solid var(--line)}
+.style-row h3{margin:0;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.1em;font-weight:400;color:var(--gold-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.style-row .walkin{font-family:'Bebas Neue',sans-serif;font-size:9px;letter-spacing:.16em;color:var(--muted);white-space:nowrap}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 12px}
+.tag{font-size:9px;line-height:1;padding:6px 7px;border-radius:4px;background:rgba(244,232,211,.06);border:1px solid rgba(244,232,211,.08);color:#c7d2ca;letter-spacing:.03em;white-space:nowrap}
+.tag.dye{color:#1b1710;background:var(--tag-color,var(--cyan));border-color:transparent;font-weight:700}
+.specs{display:grid;gap:7px}
+.spec{display:grid;grid-template-columns:40px 1fr 29px;align-items:center;gap:7px;font-family:'Bebas Neue',sans-serif;letter-spacing:.12em;font-size:9px;color:var(--muted)}
+.spec b{font-weight:400;text-align:right;color:#dbe6df;font-variant-numeric:tabular-nums}
+.mini-bar{height:3px;background:rgba(255,255,255,.08);border-radius:9px;overflow:hidden}
+.mini-bar i{display:block;height:100%;width:100%;border-radius:9px;background:linear-gradient(90deg,var(--mint),var(--cyan));transform-origin:left;transition:width .4s var(--ease),background .3s}
+.spec.low .mini-bar i{background:linear-gradient(90deg,var(--coral),#ffb36b)}
+.spec.perfect .mini-bar i{background:linear-gradient(90deg,var(--gold),var(--gold-bright));box-shadow:0 0 8px rgba(231,184,107,.5)}
+.meters{position:absolute;left:50%;top:calc(78px + var(--safe-t));transform:translateX(-50%);width:300px;display:flex;flex-direction:column;gap:7px}
+.meter{padding:8px 12px;border-radius:6px;background:rgba(7,19,18,.64);border:1px solid var(--line);backdrop-filter:blur(14px)}
+.meter-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-family:'Bebas Neue',sans-serif;letter-spacing:.13em;font-size:9px;color:#aebbb3}
+.meter-head b{font-weight:400;color:var(--cream);letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.meter-track{height:4px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.meter-track i{display:block;height:100%;width:100%;border-radius:99px;transition:width .35s var(--ease),background .35s;transform-origin:left}
+#patienceFill{background:linear-gradient(90deg,#e7b86b,#ffd99a)}
+#moodFill{background:linear-gradient(90deg,#57d9b4,#68ecff)}
+.meter.alert .meter-track i{background:linear-gradient(90deg,#ff5d67,#ffb36b);animation:pulse-red 1s infinite}
+.meter.alert .meter-head b{color:#ff9a9a}
+@keyframes pulse-red{50%{opacity:.5}}
+.finish-btn{position:absolute;right:18px;top:calc(76px + var(--safe-t));display:inline-flex;align-items:center;justify-content:center;gap:10px;height:48px;padding:0 20px;border-radius:7px;background:linear-gradient(135deg,var(--gold-bright),var(--gold) 60%,#c7984f);color:#1c1509;font-family:'Bebas Neue',sans-serif;letter-spacing:.12em;font-size:15px;box-shadow:0 13px 32px rgba(231,184,107,.18),inset 0 1px 0 rgba(255,255,255,.45);transition:transform .25s var(--ease),box-shadow .25s}
+.finish-btn:hover{transform:translateY(-2px);box-shadow:0 18px 42px rgba(231,184,107,.28)}
+.finish-btn .icon{width:16px;height:16px;stroke-width:2.4}
+.finish-btn.pulse{animation:finishpulse 2.8s infinite}
+@keyframes finishpulse{0%,82%,100%{box-shadow:0 13px 32px rgba(231,184,107,.18)}88%{box-shadow:0 13px 45px rgba(231,184,107,.46)}}
+.turn-controls{position:absolute;right:19px;top:50%;transform:translateY(-34%);display:flex;flex-direction:column;gap:7px;z-index:11}
+.turn-btn{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);background:rgba(7,19,18,.64);backdrop-filter:blur(12px);color:#d7e2db;transition:border-color .2s,background .2s,transform .2s}
+.turn-btn:hover{border-color:rgba(231,184,107,.45);background:rgba(231,184,107,.08);transform:scale(1.04)}
+.turn-btn .icon{width:18px;height:18px}
+.turn-label{font-family:'Bebas Neue',sans-serif;font-size:8px;letter-spacing:.16em;color:var(--muted);text-align:center;margin-top:-2px;margin-bottom:3px}
+.tool-dock{position:absolute;left:50%;bottom:calc(16px + var(--safe-b));transform:translateX(-50%);width:min(940px,calc(100% - 36px));display:flex;flex-direction:column;gap:8px;align-items:center}
+.tool-options{display:flex;align-items:center;justify-content:center;gap:7px;min-height:38px;padding:5px 8px;border-radius:999px;background:rgba(7,19,18,.72);border:1px solid var(--line);backdrop-filter:blur(16px);box-shadow:0 10px 26px rgba(0,0,0,.25);animation:optionin .3s var(--ease)}
+@keyframes optionin{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.option-label{font-family:'Bebas Neue',sans-serif;font-size:9px;letter-spacing:.16em;color:var(--muted);padding:0 4px 0 6px;white-space:nowrap}
+.guard-btn{min-width:40px;height:28px;padding:0 9px;border-radius:99px;border:1px solid transparent;background:rgba(255,255,255,.055);font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:.07em;color:#bdcbc2;display:flex;align-items:center;gap:3px;transition:background .2s,color .2s,border-color .2s}
+.guard-btn:hover{background:rgba(255,255,255,.1)}
+.guard-btn.active{background:var(--gold);color:#21180c;border-color:var(--gold-bright);box-shadow:0 0 16px rgba(231,184,107,.25)}
+.dye-swatch{width:25px;height:25px;border-radius:50%;border:2px solid rgba(255,255,255,.12);background:var(--swatch);position:relative;transition:transform .18s,border-color .18s}
+.dye-swatch:hover{transform:scale(1.12)}
+.dye-swatch.active{border-color:var(--cream);transform:scale(1.15);box-shadow:0 0 12px var(--swatch)}
+.dye-swatch.active::after{content:'';position:absolute;inset:-5px;border:1px solid var(--swatch);border-radius:50%;opacity:.35}
+.option-note{font-size:9px;color:var(--muted);letter-spacing:.03em;padding:0 7px;white-space:nowrap}
+.tool-list{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:7px;border-radius:13px;background:linear-gradient(180deg,rgba(13,29,27,.9),rgba(7,18,17,.93));border:1px solid var(--line);box-shadow:0 18px 50px rgba(0,0,0,.4);backdrop-filter:blur(20px) saturate(1.2)}
+.tool-btn{flex:1 1 0;min-width:0;height:58px;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#9dad9f;border:1px solid transparent;position:relative;transition:background .2s,color .2s,transform .2s,border-color .2s}
+.tool-btn .icon{width:21px;height:21px;transition:transform .25s var(--ease)}
+.tool-btn span{font-family:'Bebas Neue',sans-serif;font-size:9px;letter-spacing:.1em;white-space:nowrap}
+.tool-btn .keycap{position:absolute;right:6px;top:5px;font-size:8px;line-height:1;color:rgba(244,232,211,.25);font-weight:700}
+.tool-btn:hover{background:rgba(255,255,255,.04);color:var(--cream)}
+.tool-btn:hover .icon{transform:translateY(-1px) scale(1.05)}
+.tool-btn.active{background:linear-gradient(180deg,rgba(231,184,107,.18),rgba(231,184,107,.05));border-color:rgba(231,184,107,.4);color:var(--gold-bright);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.tool-btn.active::after{content:'';position:absolute;bottom:-8px;width:20px;height:2px;border-radius:9px;background:var(--gold);box-shadow:0 0 8px var(--gold)}
+.hint-bar{position:absolute;bottom:calc(104px + var(--safe-b));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:9px;padding:7px 13px;border-radius:999px;background:rgba(7,19,18,.52);border:1px solid rgba(244,232,211,.09);backdrop-filter:blur(10px);color:#b2c0b8;font-size:10px;letter-spacing:.02em;white-space:nowrap;max-width:calc(100% - 60px);overflow:hidden;text-overflow:ellipsis;transition:opacity .3s}
+.hint-bar .icon{width:13px;height:13px;color:var(--gold);flex:0 0 auto}
+.hint-bar b{color:var(--cream);font-weight:600}
+.toast-stack{position:fixed;top:calc(72px + var(--safe-t));left:50%;transform:translateX(-50%);z-index:40;display:flex;flex-direction:column;gap:7px;align-items:center;pointer-events:none;width:max-content;max-width:calc(100% - 40px)}
+.toast{padding:10px 15px;border-radius:7px;border:1px solid var(--line-strong);background:rgba(7,20,18,.94);box-shadow:0 12px 30px rgba(0,0,0,.35);font-size:11px;display:flex;align-items:center;gap:8px;backdrop-filter:blur(15px);animation:toastin .35s var(--ease),toastout .4s ease forwards;animation-delay:0s,2.8s}
+.toast .icon{width:14px;height:14px;color:var(--gold);flex:0 0 auto}
+.toast.good{border-color:rgba(111,228,193,.32)}.toast.good .icon{color:var(--mint)}
+.toast.bad{border-color:rgba(255,118,151,.38)}.toast.bad .icon{color:var(--coral)}
+@keyframes toastin{from{opacity:0;transform:translateY(-7px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes toastout{to{opacity:0;transform:translateY(-4px)}}
+.floating-score{position:fixed;z-index:60;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:.08em;color:var(--gold-bright);text-shadow:0 2px 12px rgba(0,0,0,.8);pointer-events:none;animation:floatup 1.1s ease forwards}
+@keyframes floatup{0%{opacity:0;transform:translate(-50%,8px) scale(.8)}22%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-36px) scale(.95)}}
+.modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:24px;pointer-events:none;visibility:hidden;opacity:0;transition:opacity .35s var(--ease),visibility .35s}
+.modal.open{pointer-events:auto;visibility:visible;opacity:1}
+.modal::before{content:'';position:absolute;inset:0;background:rgba(3,9,9,.74);backdrop-filter:blur(12px) saturate(.8)}
+.modal-panel{position:relative;z-index:1;width:min(980px,100%);max-height:min(86dvh,800px);border-radius:13px;overflow:hidden;display:flex;flex-direction:column;transform:translateY(10px) scale(.985);transition:transform .35s var(--ease);background:linear-gradient(145deg,rgba(17,38,35,.98),rgba(6,17,16,.99));border:1px solid rgba(244,232,211,.16);box-shadow:0 40px 100px rgba(0,0,0,.6)}
+.modal.open .modal-panel{transform:none}
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:22px 24px 18px;border-bottom:1px solid var(--line);flex:0 0 auto}
+.modal-head h2{margin:2px 0 0;font-family:'Bodoni Moda',serif;font-weight:600;font-size:31px;letter-spacing:-.03em;line-height:1}
+.modal-head p{margin:6px 0 0;font-size:11px;color:var(--muted);line-height:1.5}
+.modal-head-right{display:flex;align-items:center;gap:10px}
+.modal-scroll{overflow:auto;overscroll-behavior:contain;padding:20px 24px 24px;scrollbar-width:thin;scrollbar-color:rgba(231,184,107,.35) transparent}
+.modal-scroll::-webkit-scrollbar{width:6px}
+.modal-scroll::-webkit-scrollbar-thumb{background:rgba(231,184,107,.3);border-radius:9px}
+.close-btn{width:35px;height:35px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);color:#d4ded7;background:rgba(255,255,255,.03);transition:background .2s,border-color .2s;flex:0 0 auto}
+.close-btn:hover{background:rgba(255,255,255,.07);border-color:var(--line-strong)}
+.close-btn .icon{width:17px;height:17px}
+.shop-section{margin-bottom:24px}.shop-section:last-child{margin-bottom:0}
+.shop-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.shop-section-head h3{margin:0;font-family:'Bebas Neue',sans-serif;font-weight:400;letter-spacing:.16em;font-size:12px;color:var(--gold)}
+.shop-section-head span{font-size:9px;color:var(--muted)}
+.shop-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.shop-card{position:relative;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.025);padding:13px;display:flex;flex-direction:column;gap:10px;min-height:154px;transition:border-color .2s,background .2s,transform .2s;overflow:hidden}
+.shop-card:hover{border-color:rgba(231,184,107,.3);background:rgba(231,184,107,.04);transform:translateY(-2px)}
+.shop-card.owned{border-color:rgba(111,228,193,.24);background:rgba(111,228,193,.035)}
+.shop-card.equipped{border-color:rgba(231,184,107,.45);background:rgba(231,184,107,.065)}
+.shop-icon{width:38px;height:38px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(231,184,107,.16),rgba(255,255,255,.025));border:1px solid rgba(231,184,107,.2);color:var(--gold-bright)}
+.shop-icon .icon{width:20px;height:20px}
+.shop-card h4{margin:0;font-family:'Bodoni Moda',serif;font-size:15px;font-weight:600;line-height:1.15}
+.shop-card p{margin:3px 0 0;font-size:10px;line-height:1.5;color:var(--muted);flex:1}
+.shop-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto}
+.shop-price{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--gold-bright);font-variant-numeric:tabular-nums}
+.shop-price .coin-orb{width:17px;height:17px;font-size:9px}
+.buy-btn{padding:7px 11px;border-radius:5px;background:var(--gold);color:#21180c;font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:.1em;transition:background .2s,transform .2s}
+.buy-btn:hover{background:var(--gold-bright);transform:translateY(-1px)}
+.buy-btn:disabled{background:rgba(255,255,255,.07);color:var(--muted);cursor:not-allowed;transform:none}
+.buy-btn.equip{background:rgba(111,228,193,.16);color:var(--mint);border:1px solid rgba(111,228,193,.28)}
+.buy-btn.equipped{background:rgba(231,184,107,.1);color:var(--gold);border:1px solid rgba(231,184,107,.3)}
+.shop-card .neon-strip{position:absolute;left:13px;right:13px;top:0;height:2px;background:var(--neon);box-shadow:0 0 12px var(--neon);opacity:.8}
+.result-modal{align-items:center}
+.result-panel{position:relative;z-index:1;width:min(930px,100%);max-height:min(90dvh,780px);border-radius:13px;overflow:hidden;display:grid;grid-template-columns:1.03fr .97fr;background:linear-gradient(145deg,rgba(17,38,35,.99),rgba(6,17,16,.99));border:1px solid rgba(244,232,211,.16);box-shadow:0 40px 100px rgba(0,0,0,.65);transform:translateY(10px) scale(.985);transition:transform .4s var(--ease)}
+.modal.open .result-panel{transform:none}
+.result-photo-wrap{position:relative;min-height:420px;background:#0a1414;overflow:hidden}
+.result-photo{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(1.08) contrast(1.02)}
+.result-photo-wrap::after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,rgba(4,12,11,.85),transparent 50%),linear-gradient(90deg,rgba(4,12,11,.18),transparent 40%)}
+.photo-brand{position:absolute;left:20px;top:20px;z-index:2;display:flex;align-items:center;gap:8px}
+.photo-brand .brand-sigil{width:30px;height:30px;font-size:13px;background:rgba(4,13,12,.4);backdrop-filter:blur(8px)}
+.photo-brand .brand-mark{font-size:15px}
+.photo-caption{position:absolute;left:20px;right:20px;bottom:19px;z-index:2;display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.photo-caption .style{font-family:'Bodoni Moda',serif;font-style:italic;font-size:23px;line-height:1;color:var(--cream)}
+.photo-caption .date{font-family:'Bebas Neue',sans-serif;font-size:9px;letter-spacing:.16em;color:rgba(244,232,211,.65);text-align:right;line-height:1.5}
+.photo-stamp{position:absolute;right:20px;top:20px;z-index:2;width:48px;height:48px;border-radius:50%;border:1px solid rgba(231,184,107,.55);display:grid;place-items:center;font-family:'Bebas Neue',sans-serif;font-size:8px;letter-spacing:.1em;color:var(--gold);text-align:center;line-height:1.1;background:rgba(4,13,12,.3);transform:rotate(9deg)}
+.result-info{padding:clamp(24px,3.5vw,42px);display:flex;flex-direction:column;justify-content:center;overflow:auto}
+.result-info h2{margin:7px 0 0;font-family:'Bodoni Moda',serif;font-weight:600;font-size:clamp(29px,3.2vw,42px);letter-spacing:-.04em;line-height:.98}
+.result-info h2 em{color:var(--gold);font-style:italic}
+.result-stars{display:flex;gap:5px;margin:18px 0 5px}
+.result-stars .star-icon{width:26px;height:26px;color:rgba(244,232,211,.14);transition:color .25s,transform .25s,filter .25s}
+.result-stars .star-icon.on{color:var(--gold);filter:drop-shadow(0 0 8px rgba(231,184,107,.45));transform:scale(1.05)}
+.rating-word{font-family:'Bebas Neue',sans-serif;letter-spacing:.18em;font-size:11px;color:var(--mint)}
+.rating-quote{margin:14px 0 17px;font-size:11px;line-height:1.6;color:var(--muted);font-style:italic}
+.pay-lines{display:flex;flex-direction:column;gap:7px;padding:13px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.pay-line{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:11px;color:var(--muted)}
+.pay-line b{font-weight:600;color:var(--cream);font-variant-numeric:tabular-nums}
+.pay-line.total{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.1em;color:var(--gold);margin-top:2px}
+.pay-line.total b{font-family:'Bodoni Moda',serif;font-size:22px;color:var(--gold-bright)}
+.result-actions{display:flex;gap:8px;margin-top:17px}
+.result-actions .btn-primary{flex:1;min-height:48px;padding:0 18px;font-size:14px}
+.result-actions .btn-ghost{min-height:48px;padding:0 13px;font-size:11px}
+.result-small-actions{display:flex;gap:7px;margin-top:8px}
+.result-small-actions button{flex:1;min-height:39px;padding:0 10px;border-radius:6px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;gap:7px;font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:.1em;color:#cdd8d1;background:rgba(255,255,255,.025);transition:background .2s,border-color .2s}
+.result-small-actions button:hover{background:rgba(255,255,255,.06);border-color:var(--line-strong)}
+.result-small-actions .icon{width:14px;height:14px}
+.help-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.help-card{padding:15px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.025)}
+.help-card .icon{width:23px;height:23px;color:var(--gold);margin-bottom:10px}
+.help-card h4{margin:0 0 5px;font-family:'Bodoni Moda',serif;font-size:15px;font-weight:600}
+.help-card p{margin:0;font-size:10px;line-height:1.6;color:var(--muted)}
+.help-keys{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.help-keys span{display:flex;align-items:center;gap:6px;font-size:9px;color:var(--muted)}
+#wipe{position:fixed;inset:0;z-index:45;pointer-events:none;background:linear-gradient(120deg,#071010,#173a33,#071010);transform:translateY(100%);visibility:hidden}
+#wipe.go{visibility:visible;animation:wipe .95s var(--ease)}
+@keyframes wipe{0%{transform:translateY(100%)}42%,58%{transform:translateY(0)}100%{transform:translateY(-100%)}}
+#revealFlash{position:fixed;inset:0;z-index:25;pointer-events:none;background:#fff;opacity:0;visibility:hidden}
+#revealFlash.flash{visibility:visible;animation:flash .55s ease-out}
+@keyframes flash{0%{opacity:.8}100%{opacity:0;visibility:hidden}}
+@media (max-width:1100px){.request-card{width:265px}.meters{width:260px}}
+@media (max-width:900px){.mini-brand .brand-sub{display:none}.request-card{width:246px;padding:13px}.meters{width:230px}.tool-btn span{font-size:8px;letter-spacing:.06em}.start-title{font-size:clamp(45px,8vw,72px)}}
+@media (max-width:720px){
+  .topbar{top:calc(10px + var(--safe-t));left:10px;right:10px;gap:8px}.mini-brand .brand-sigil{width:31px;height:31px;font-size:13px}.mini-brand .brand-mark{font-size:16px}
+  .top-center{display:none}.top-actions{gap:5px}.icon-btn{width:35px;height:35px}.icon-btn .icon{width:16px;height:16px}
+  .coin-pill{height:35px;padding:6px 10px 6px 7px}.coin-orb{width:20px;height:20px;font-size:11px}.coin-pill b{font-size:12px;min-width:22px}
+  .request-card{left:10px;right:10px;top:calc(56px + var(--safe-t));width:auto;padding:10px 12px;border-radius:8px}
+  .request-card::before{top:10px;bottom:10px}.client-head{margin-bottom:8px;gap:8px}.avatar{width:32px;height:32px;font-size:12px}
+  .client-meta .eyebrow{font-size:8px}.client-meta h2{font-size:16px}.style-row{padding:7px 0 6px}.style-row h3{font-size:13px}.style-row .walkin{font-size:8px}
+  .tags{gap:4px;margin-bottom:8px}.tag{font-size:8px;padding:5px 6px}.specs{grid-template-columns:1fr 1fr;gap:6px 12px}
+  .spec{grid-template-columns:30px 1fr 24px;font-size:8px;gap:5px}
+  .meters{top:auto;bottom:calc(148px + var(--safe-b));left:10px;right:10px;width:auto;transform:none;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .meter{padding:6px 9px;border-radius:5px}.meter-head{font-size:8px;margin-bottom:4px}
+  .finish-btn{position:absolute;top:auto;right:10px;bottom:calc(16px + var(--safe-b));width:58px;height:58px;padding:0;border-radius:50%;z-index:2}
+  .finish-btn span{display:none}.finish-btn .icon{width:22px;height:22px}
+  .tool-dock{bottom:calc(16px + var(--safe-b));left:10px;right:80px;width:auto;transform:none;align-items:stretch}
+  .tool-options{overflow-x:auto;justify-content:flex-start;scrollbar-width:none;border-radius:9px;padding:5px 6px}.tool-options::-webkit-scrollbar{display:none}
+  .option-label{font-size:8px}.option-note{font-size:8px;padding:0 3px}.guard-btn{height:26px;min-width:36px}
+  .tool-list{overflow-x:auto;justify-content:flex-start;gap:3px;padding:5px;border-radius:10px;scrollbar-width:none}.tool-list::-webkit-scrollbar{display:none}
+  .tool-btn{flex:0 0 49px;height:53px;border-radius:7px}.tool-btn .icon{width:19px;height:19px}.tool-btn span{font-size:8px;letter-spacing:.03em}.tool-btn .keycap{display:none}
+  .hint-bar{bottom:calc(200px + var(--safe-b));font-size:9px;max-width:calc(100% - 30px);padding:6px 10px}
+  .turn-controls{top:auto;bottom:calc(244px + var(--safe-b));right:10px;transform:none;gap:5px}.turn-btn{width:36px;height:36px}.turn-label{display:none}
+  .modal{padding:10px}.modal-panel{max-height:calc(100dvh - 20px);border-radius:10px}.modal-head{padding:17px 17px 13px}.modal-head h2{font-size:25px}.modal-head p{font-size:10px}
+  .modal-scroll{padding:14px 16px 20px}.shop-grid{grid-template-columns:1fr 1fr;gap:7px}.shop-card{padding:11px;min-height:144px}.shop-card h4{font-size:14px}.shop-card p{font-size:9px}
+  .result-panel{grid-template-columns:1fr;max-height:calc(100dvh - 20px);overflow:auto}.result-photo-wrap{min-height:220px;max-height:32dvh;order:0}.result-info{padding:22px 20px 25px;order:1}.result-info h2{font-size:31px}.result-stars .star-icon{width:22px;height:22px}
+  .help-grid{grid-template-columns:1fr}.toast-stack{top:calc(58px + var(--safe-t))}
+  #startScreen::before{background:linear-gradient(0deg,rgba(4,11,11,.96) 0%,rgba(4,11,11,.82) 48%,rgba(4,11,11,.24) 100%)}
+  .start-inner{justify-content:flex-end;padding:20px 20px calc(30px + var(--safe-b));width:100%}
+  .brand{margin-bottom:20px;position:absolute;top:calc(18px + var(--safe-t));left:20px}.brand .brand-sigil{width:37px;height:37px;font-size:17px}.brand .brand-mark{font-size:21px}
+  .start-kicker{font-size:10px;margin-bottom:10px}.start-title{font-size:clamp(46px,13vw,68px)}.start-copy{font-size:11px;line-height:1.6;margin:16px 0 20px;max-width:360px}
+  .start-actions{width:100%}.start-actions .btn-primary{flex:1;white-space:nowrap;padding-left:13px;padding-right:13px}.start-actions .btn-ghost{padding:0 16px}.start-meta{margin-top:22px;gap:20px}.start-meta b{font-size:18px}.start-meta span{font-size:8px}.start-side{display:none}
+}
+@media (max-width:360px){.shop-grid{grid-template-columns:1fr}.specs{grid-template-columns:1fr}.request-card{padding:9px 11px}.tags .tag:nth-child(n+4){display:none}}
+@media (max-height:560px) and (orientation:landscape){
+  #startScreen::before{background:linear-gradient(90deg,rgba(4,11,11,.97) 0%,rgba(4,11,11,.82) 48%,rgba(4,11,11,.22) 100%)}
+  .start-inner{width:min(560px,64%);justify-content:center;padding:14px 26px}
+  .brand{margin-bottom:7px;position:static}.brand .brand-sigil{width:31px;height:31px;font-size:14px}.brand .brand-mark{font-size:18px}.brand .brand-sub{font-size:7px}
+  .start-kicker{font-size:8px;margin-bottom:4px}.start-title{font-size:clamp(34px,5.6vw,48px);line-height:.9}.start-copy{font-size:9px;line-height:1.45;margin:7px 0 10px;max-width:430px}
+  .start-actions .btn-primary,.start-actions .btn-ghost{min-height:41px;padding:0 15px;font-size:12px}.start-actions .icon-btn{width:41px!important;height:41px!important}
+  .start-meta,.start-side{display:none}
+  .request-card{top:calc(58px + var(--safe-t));width:230px;padding:9px 11px}.client-head{margin-bottom:5px}.tags{margin-bottom:6px}.specs{gap:5px}
+  .meters{top:calc(58px + var(--safe-t));width:220px}.finish-btn{top:calc(58px + var(--safe-t));height:40px;font-size:12px}
+  .tool-dock{bottom:calc(10px + var(--safe-b))}.tool-btn{height:48px}.tool-btn .icon{width:18px;height:18px}.tool-btn span{display:none}
+  .hint-bar{display:none}.turn-controls{top:50%;bottom:auto;transform:translateY(-50%)}.tool-options{min-height:32px}.tool-list{padding:5px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+
+</style>
+</head>
+<body>
+<svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><defs>
+<symbol id="i-clippers" viewBox="0 0 24 24"><path d="M7.2 4.2h9.6a2 2 0 0 1 2 2v6.2H5.2V6.2a2 2 0 0 1 2-2Z"/><path d="M5.6 12.4h12.8l-.8 5.8a1.8 1.8 0 0 1-1.8 1.6H8.2a1.8 1.8 0 0 1-1.8-1.6l-.8-5.8Z"/><path d="M7 15.4h10M9 18h6"/></symbol>
+<symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="17.5" r="2.3"/><circle cx="18" cy="17.5" r="2.3"/><path d="m7.8 15.8 8.9-12M16.2 15.8 7.3 3.8M9.3 12.1l2.2 2.4M14.7 12.1l-2.2 2.4"/></symbol>
+<symbol id="i-razor" viewBox="0 0 24 24"><path d="M9 21v-5.2a3 3 0 0 0-.9-2.1L5.5 11a3 3 0 0 1-.8-2.1V5.2A2.2 2.2 0 0 1 6.9 3h5.2a2.2 2.2 0 0 1 2.2 2.2v3.7a3 3 0 0 1-.8 2.1l-2.6 2.7a3 3 0 0 0-.9 2.1V21"/><path d="M6 7.2h7.3"/></symbol>
+<symbol id="i-trimmer" viewBox="0 0 24 24"><path d="M8 3.8h8v7H8z"/><path d="M6.8 10.8h10.4l-1 7.2a2 2 0 0 1-2 1.8h-4.4a2 2 0 0 1-2-1.8l-1-7.2Z"/><path d="M8 5.8h8M9.2 14h5.6"/></symbol>
+<symbol id="i-wash" viewBox="0 0 24 24"><path d="M12 2.8s5.1 5.6 5.1 9.3A5.1 5.1 0 0 1 12 17.2a5.1 5.1 0 0 1-5.1-5.1C6.9 8.4 12 2.8 12 2.8Z"/><path d="M4 20.4c2.5-1.2 5.3-1.2 8 0s5.5 1.2 8 0"/></symbol>
+<symbol id="i-dye" viewBox="0 0 24 24"><path d="M8 8.5h8l1 10.2a2.2 2.2 0 0 1-2.2 2.3H9.2A2.2 2.2 0 0 1 7 18.7L8 8.5Z"/><path d="M9 5h6v3.5H9zM11 2.5h2M16.5 3l3.2-1M17.3 6.3l3.2 1"/><path d="M10 13h4"/></symbol>
+<symbol id="i-shop" viewBox="0 0 24 24"><path d="M4.2 8.5h15.6l-.9 10.8a2 2 0 0 1-2 1.9H7.1a2 2 0 0 1-2-1.9L4.2 8.5Z"/><path d="M8.5 8.5V7a3.5 3.5 0 1 1 7 0v1.5"/></symbol>
+<symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9.2h3.5L12 5.5v13l-4.5-3.7H4z"/><path d="M16 8.2a5.2 5.2 0 0 1 0 7.6M18.8 5.4a9.2 9.2 0 0 1 0 13.2"/></symbol>
+<symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9.2h3.5L12 5.5v13l-4.5-3.7H4z"/><path d="m16.5 9 5 6M21.5 9l-5 6"/></symbol>
+<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.4 2.4 0 1 1 3.9 1.9c-.9.6-1.5 1.1-1.5 2.3M12 17h.01"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2.6 2.8 5.7 6.3.9-4.6 4.5 1.1 6.3-5.6-3-5.6 3 1.1-6.3L3 9.2l6.3-.9L12 2.6Z" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-rotate-l" viewBox="0 0 24 24"><path d="M4.5 8.2A8.5 8.5 0 1 1 3.8 16"/><path d="M4.5 3.5v5h5"/></symbol>
+<symbol id="i-rotate-r" viewBox="0 0 24 24"><path d="M19.5 8.2A8.5 8.5 0 1 0 20.2 16"/><path d="M19.5 3.5v5h-5"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m4.5 12.5 4.7 4.7L19.8 6.5"/></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><path d="M4.2 7.5h3l1.3-2h7l1.3 2h3a1.8 1.8 0 0 1 1.8 1.8v8.9a1.8 1.8 0 0 1-1.8 1.8H4.2a1.8 1.8 0 0 1-1.8-1.8V9.3a1.8 1.8 0 0 1 1.8-1.8Z"/><circle cx="12" cy="13" r="3.4"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15M13 5l7 7-7 7"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2.5 1.8 6.2 6.2 1.8-6.2 1.8-1.8 6.2-1.8-6.2-6.2-1.8 6.2-1.8L12 2.5Z"/><path d="m19.2 16.2.8 2.5 2.5.8-2.5.8-.8 2.5-.8-2.5-2.5-.8 2.5-.8.8-2.5Z"/></symbol>
+<symbol id="i-bolt" viewBox="0 0 24 24"><path d="m13.5 2.5-8 11h5.3L10 21.5l8.7-11.8h-5.2l.8-7.2Z"/></symbol>
+<symbol id="i-towel" viewBox="0 0 24 24"><path d="M5 7.5h14v11.2a1.8 1.8 0 0 1-1.8 1.8H6.8A1.8 1.8 0 0 1 5 18.7V7.5Z"/><path d="M7.5 7.5V5.3A1.8 1.8 0 0 1 9.3 3.5h5.4a1.8 1.8 0 0 1 1.8 1.8v2.2M8 11h8M8 14h6"/></symbol>
+<symbol id="i-hair" viewBox="0 0 24 24"><path d="M4 20c.7-5.8 3-10.5 7-12.8 3-1.8 6.5-1.6 8.7.7 2 2.1 2.3 5.4.6 7.7-1.3 1.7-3.2 2.1-4.8 1.3-1.7-.8-2.5-2.6-1.9-4.4"/><path d="M4.8 15.7c3.2.2 5.9 1.5 7.7 4.2M9.2 10.3c1.1 2.6 1.2 5.3.5 8.1M13.9 8.1c-.4 2.7.1 5.3 1.4 7.6"/></symbol>
+<symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 2.8s5.1 5.6 5.1 9.3A5.1 5.1 0 0 1 12 17.2a5.1 5.1 0 0 1-5.1-5.1C6.9 8.4 12 2.8 12 2.8Z"/><path d="M9.3 12.4a2.7 2.7 0 0 0 2.7 2.7"/></symbol>
+</defs></svg>
+<canvas id="scene"></canvas>
+<div id="vignette"></div><div id="grain"></div><div id="revealFlash"></div><div id="wipe"></div>
+<div id="loader"><div class="loader-mark">F</div><div class="loader-title">FADEHOUSE</div><div class="loader-line"><i></i></div><div class="loader-tip">Warming the towels. Honing the blades.</div></div>
+<div id="webglFallback"><div><h1 style="font-family:'Bodoni Moda',serif">WebGL is taking a break.</h1><p style="color:#aab9b1">This barbershop needs WebGL. Try a modern browser with hardware acceleration.</p></div></div>
+<aside id="startScreen">
+  <div class="start-inner">
+    <div class="brand"><div class="brand-sigil">F</div><div><div class="brand-mark">FADEHOUSE</div><div class="brand-sub">BARBER CO. · EST. 1926</div></div></div>
+    <div class="start-kicker">A modern barber simulator</div>
+    <h1 class="start-title"><span>THE PERFECT</span><span><em>FADE</em> STARTS</span><span>HERE.</span></h1>
+    <p class="start-copy">Read the chair. Work the guard. Finish the look. Build the most talked-about barbershop in town — one sharp client at a time.</p>
+    <div class="start-actions">
+      <button class="btn-primary" id="openShopBtn"><span>START SHIFT</span><svg class="icon"><use href="#i-arrow"/></svg></button>
+      <button class="btn-ghost" id="startShopBtn"><svg class="icon"><use href="#i-shop"/></svg><span>UPGRADES</span></button>
+      <button class="icon-btn" id="startSoundBtn" aria-label="Toggle sound" style="width:44px;height:44px"><svg class="icon"><use href="#i-sound"/></svg></button>
+    </div>
+    <div class="start-meta"><div><b>06</b><span>PRO TOOLS</span></div><div><b>5★</b><span>CLIENT REVIEWS</span></div><div><b id="startSessions">00</b><span>CUTS ON RECORD</span></div><div><b id="startBest">—</b><span>BEST RATING</span></div></div>
+  </div>
+  <div class="start-side"><div class="start-note"><strong>HOUSE RULES</strong><p>Drag across the hair to cut. Read the client request. Turn the chair for the back. Finish when the look is clean.</p><div class="keys"><span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span><span>quick tools</span></div></div></div>
+</aside>
+<main id="hud" class="hidden">
+  <header class="topbar">
+    <div class="mini-brand"><div class="brand-sigil">F</div><div><div class="brand-mark">FADEHOUSE</div><div class="brand-sub">BARBER CO.</div></div></div>
+    <div class="top-center"><div class="session-pill"><span class="dot"></span>WALK-IN <b id="clientNumber">01</b></div><div class="session-pill" style="color:#9fb1a7">CHAIR <b>01</b></div></div>
+    <div class="top-actions">
+      <button class="icon-btn" id="hudShopBtn" aria-label="Open shop"><svg class="icon"><use href="#i-shop"/></svg></button>
+      <button class="icon-btn" id="helpBtn" aria-label="How to play"><svg class="icon"><use href="#i-help"/></svg></button>
+      <button class="icon-btn" id="soundBtn" aria-label="Toggle sound"><svg class="icon"><use href="#i-sound"/></svg></button>
+      <div class="coin-pill" id="coinPill"><div class="coin-orb">¢</div><b id="coinCount">120</b></div>
+    </div>
+  </header>
+  <section class="request-card" id="requestCard" aria-live="polite">
+    <div class="client-head"><div class="avatar" id="clientAvatar">MJ</div><div class="client-meta"><div class="eyebrow" id="clientVibe">FIRST-TIMER</div><h2 id="clientName">Marcus J.</h2></div></div>
+    <div class="style-row"><h3 id="requestStyle">THE MID FADE</h3><span class="walkin">REQUEST</span></div>
+    <div class="tags" id="requestTags"></div>
+    <div class="specs">
+      <div class="spec" id="specTop"><span>TOP</span><div class="mini-bar"><i></i></div><b>0%</b></div>
+      <div class="spec" id="specSides"><span>SIDES</span><div class="mini-bar"><i></i></div><b>0%</b></div>
+      <div class="spec" id="specBeard"><span>BEARD</span><div class="mini-bar"><i></i></div><b>0%</b></div>
+      <div class="spec" id="specColor"><span>COLOR</span><div class="mini-bar"><i></i></div><b>0%</b></div>
+    </div>
+  </section>
+  <section class="meters">
+    <div class="meter" id="patienceMeter"><div class="meter-head"><span>PATIENCE</span><b id="patienceVal">100%</b></div><div class="meter-track"><i id="patienceFill"></i></div></div>
+    <div class="meter" id="moodMeter"><div class="meter-head"><span>CLIENT MOOD</span><b id="moodVal">—</b></div><div class="meter-track"><i id="moodFill"></i></div></div>
+  </section>
+  <button class="finish-btn pulse" id="finishBtn"><span>FINISH CUT</span><svg class="icon"><use href="#i-check"/></svg></button>
+  <div class="turn-controls"><div class="turn-label">SPIN CHAIR</div><button class="turn-btn" id="turnLeft" aria-label="Turn chair left"><svg class="icon"><use href="#i-rotate-l"/></svg></button><button class="turn-btn" id="turnRight" aria-label="Turn chair right"><svg class="icon"><use href="#i-rotate-r"/></svg></button></div>
+  <div class="hint-bar" id="hintBar"><svg class="icon"><use href="#i-bolt"/></svg><span><b>Hold + drag</b> across the hair to cut.</span></div>
+  <div class="tool-dock"><div class="tool-options" id="toolOptions"></div><div class="tool-list" id="toolList"></div></div>
+</main>
+<div class="toast-stack" id="toastStack"></div>
+<section class="modal" id="shopModal" aria-modal="true" role="dialog" aria-label="Shop and upgrades">
+  <div class="modal-panel">
+    <div class="modal-head"><div><div class="eyebrow">THE BACK ROOM</div><h2>Shop &amp; upgrades</h2><p>Invest in the chair. Better tools, better tips, a better-looking shop.</p></div><div class="modal-head-right"><div class="coin-pill" style="height:35px"><div class="coin-orb">¢</div><b id="shopCoins">120</b></div><button class="close-btn" id="shopClose" aria-label="Close shop"><svg class="icon"><use href="#i-close"/></svg></button></div></div>
+    <div class="modal-scroll" id="shopScroll"></div>
+  </div>
+</section>
+<section class="modal" id="helpModal" aria-modal="true" role="dialog" aria-label="How to play">
+  <div class="modal-panel" style="max-width:690px">
+    <div class="modal-head"><div><div class="eyebrow">THE CRAFT</div><h2>How to run the chair</h2><p>Read the request, choose the right tool, and finish before patience runs out.</p></div><button class="close-btn" id="helpClose" aria-label="Close help"><svg class="icon"><use href="#i-close"/></svg></button></div>
+    <div class="modal-scroll">
+      <div class="help-grid">
+        <div class="help-card"><svg class="icon"><use href="#i-clippers"/></svg><h4>Guard it</h4><p>Clippers cut toward the selected guard. Use skin at the neckline and longer guards higher up for a fade.</p></div>
+        <div class="help-card"><svg class="icon"><use href="#i-scissors"/></svg><h4>Shape it</h4><p>Scissors remove small amounts. Use them for the top length, texture, and fine beard detail.</p></div>
+        <div class="help-card"><svg class="icon"><use href="#i-razor"/></svg><h4>Shave it</h4><p>The razor only shaves facial hair. Glide over the jaw, chin, and mustache for a clean finish.</p></div>
+        <div class="help-card"><svg class="icon"><use href="#i-dye"/></svg><h4>Color it</h4><p>Pick a dye swatch and mist evenly across the scalp. Check the request for the exact color.</p></div>
+        <div class="help-card"><svg class="icon"><use href="#i-wash"/></svg><h4>Refresh it</h4><p>Wash &amp; Dry raises comfort and mood. A relaxed client tips better and waits longer.</p></div>
+        <div class="help-card"><svg class="icon"><use href="#i-rotate-r"/></svg><h4>Turn it</h4><p>Spin the chair to reach the back and sides. Finish with the gold button when the look is clean.</p></div>
+      </div>
+      <div class="help-keys"><span><span class="kbd">1–6</span>tools</span><span><span class="kbd">[</span><span class="kbd">]</span>guards</span><span><span class="kbd">F</span>finish</span><span><span class="kbd">S</span>shop</span><span><span class="kbd">M</span>mute</span><span><span class="kbd">Q</span><span class="kbd">E</span>turn chair</span></div>
+    </div>
+  </div>
+</section>
+<section class="modal" id="resultModal" aria-modal="true" role="dialog" aria-label="Mirror reveal results">
+  <div class="result-panel">
+    <div class="result-photo-wrap"><img class="result-photo" id="resultPhoto" alt="The finished haircut"><div class="photo-brand"><div class="brand-sigil">F</div><div class="brand-mark">FADEHOUSE</div></div><div class="photo-stamp">HOUSE<br>CUT</div><div class="photo-caption"><div class="style" id="photoStyle">The Mid Fade</div><div class="date" id="photoDate">WALK-IN 01<br>FADEHOUSE BARBER CO.</div></div></div>
+    <div class="result-info">
+      <div class="eyebrow">MIRROR REVEAL</div>
+      <h2 id="resultTitle">Sharp work, <em>Marcus.</em></h2>
+      <div class="result-stars" id="resultStars"></div>
+      <div class="rating-word" id="ratingWord">CLEAN WORK</div>
+      <p class="rating-quote" id="ratingQuote">"This is exactly what I asked for. I'll be back."</p>
+      <div class="pay-lines">
+        <div class="pay-line"><span>Chair fee</span><b id="payBase">$0</b></div>
+        <div class="pay-line"><span>Star bonus</span><b id="payStars">$0</b></div>
+        <div class="pay-line"><span>Tip</span><b id="payTip">$0</b></div>
+        <div class="pay-line total"><span>TOTAL EARNED</span><b id="payTotal">$0</b></div>
+      </div>
+      <div class="result-actions"><button class="btn-primary" id="nextClientBtn"><span>NEXT CLIENT</span><svg class="icon"><use href="#i-arrow"/></svg></button><button class="btn-ghost" id="resultShopBtn"><svg class="icon"><use href="#i-shop"/></svg><span>SHOP</span></button></div>
+      <div class="result-small-actions"><button id="savePhotoBtn"><svg class="icon"><use href="#i-camera"/></svg>SAVE PHOTO</button><button id="resultSoundBtn"><svg class="icon"><use href="#i-sound"/></svg>SOUND</button></div>
+    </div>
+  </div>
+</section>
+
+
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+const $ = (selector, scope = document) => scope.querySelector(selector);
+const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const UP = new THREE.Vector3(0, 1, 0);
+const Z_AXIS = new THREE.Vector3(0, 0, 1);
+const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+
+const SAVE_KEY = 'fadehouse-save-v2';
+const DEFAULT_PROFILE = { coins:120, neon:'classic', sound:true, upgrades:{}, stats:{sessions:0,cuts:0,best:0}, firstRun:true };
+function loadProfile(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return structuredClone(DEFAULT_PROFILE);
+    const parsed = JSON.parse(raw);
+    return {...structuredClone(DEFAULT_PROFILE),...parsed,stats:{...DEFAULT_PROFILE.stats,...(parsed.stats||{})},upgrades:parsed.upgrades||{}};
+  }catch(e){ return structuredClone(DEFAULT_PROFILE); }
+}
+const profile = loadProfile();
+function persist(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(profile)); }catch(e){} }
+
+const NEON = {
+  classic:{ name:'House Coral', color:'#ff7697', secondary:'#63e8ff', ui:'#ff7697', glow:0xff5b7e },
+  rose:{ name:'Electric Rose', color:'#ff4f9e', secondary:'#ffd1e7', ui:'#ff4f9e', glow:0xff3f95 },
+  mint:{ name:'Cool Mint', color:'#4dffc4', secondary:'#c8fff0', ui:'#4dffc4', glow:0x36f5b8 },
+  violet:{ name:'Ultra Violet', color:'#a77bff', secondary:'#e8c8ff', ui:'#a77bff', glow:0x9766ff },
+  gold:{ name:'House Gold', color:'#ffd27a', secondary:'#fff1c8', ui:'#ffd27a', glow:0xffc861 }
+};
+
+const SHOP_ITEMS = [
+  { id:'goldShears', cat:'tools', name:'Gilded Shears', desc:'Gold-plated precision shears. +12% final style score.', price:220, icon:'scissors' },
+  { id:'turboClippers', cat:'tools', name:'Turbo Clippers', desc:'A magnetic motor that cuts 55% faster. Less chair time.', price:240, icon:'clippers' },
+  { id:'hotTowel', cat:'tools', name:'Hot Towel Ritual', desc:'Every client arrives with 18 extra patience.', price:160, icon:'towel' },
+  { id:'aroma', cat:'tools', name:'Amber Diffuser', desc:'Calming aroma. Patience drains 25% slower.', price:200, icon:'drop' },
+  { id:'neonRose', cat:'neon', name:'Electric Rose', desc:'Repaint the sign and lounge in electric rose neon.', price:180, icon:'bolt', neon:'rose' },
+  { id:'neonMint', cat:'neon', name:'Cool Mint', desc:'A crisp mint wash across the shop lights and sign.', price:180, icon:'bolt', neon:'mint' },
+  { id:'neonViolet', cat:'neon', name:'Ultra Violet', desc:'Late-night violet glow for the after-hours crowd.', price:180, icon:'bolt', neon:'violet' },
+  { id:'neonGold', cat:'neon', name:'House Gold', desc:'Old-school glamour in warm champagne light.', price:200, icon:'bolt', neon:'gold' },
+  { id:'styleCrop', cat:'styles', name:'Frosted Crop', desc:'Unlock The Frosted Crop in the client rotation. +8% payout.', price:260, icon:'hair' },
+  { id:'stylePomp', cat:'styles', name:'Velvet Pomp', desc:'Unlock The Velvet Pomp. High-maintenance, high-tipping.', price:300, icon:'hair' },
+  { id:'dyeLab', cat:'styles', name:'Chrome Dye Lab', desc:'Add chrome and ink dye shades, plus +8% color accuracy.', price:280, icon:'dye' }
+];
+
+const BASE_STYLES = [
+  { id:'midfade', name:'The Mid Fade', top:.48, sideTop:.24, sideBottom:.045, backTop:.24, backBottom:.05, beard:.16, mustache:.13, fade:true, color:null, colorName:null, difficulty:2, tags:['Mid fade','Beard tidy'] },
+  { id:'crop', name:'Textured Crop', top:.36, sideTop:.19, sideBottom:.09, backTop:.20, backBottom:.09, beard:.12, mustache:.10, fade:false, color:null, colorName:null, difficulty:1, tags:['Textured top','Low sides'] },
+  { id:'exec', name:'The Executive', top:.61, sideTop:.17, sideBottom:.05, backTop:.17, backBottom:.05, beard:.04, mustache:.03, fade:true, color:null, colorName:null, difficulty:3, tags:['Skin fade','Clean shave'] },
+  { id:'buzz', name:'Buzz & Clean', top:.16, sideTop:.12, sideBottom:.09, backTop:.12, backBottom:.09, beard:0, mustache:0, fade:false, color:null, colorName:null, difficulty:1, tags:['Buzz top','Clean shave'] },
+  { id:'silver', name:'Silver Fox', top:.44, sideTop:.18, sideBottom:.06, backTop:.18, backBottom:.06, beard:.18, mustache:.14, fade:true, color:'#d8dbe2', colorName:'Silver', difficulty:3, tags:['Taper fade','Silver dye'] },
+  { id:'neon', name:'Neon Rebel', top:.34, sideTop:.20, sideBottom:.08, backTop:.20, backBottom:.08, beard:.08, mustache:.06, fade:false, color:'#38e8d0', colorName:'Cyan', difficulty:3, tags:['Textured','Cyan dye'] }
+];
+const SIGNATURE_STYLES = {
+  styleCrop:{ id:'frosted', name:'The Frosted Crop', top:.39, sideTop:.18, sideBottom:.06, backTop:.18, backBottom:.06, beard:.06, mustache:.04, fade:true, color:'#d8dbe2', colorName:'Silver', difficulty:4, tags:['Frosted tips','Taper fade'], signature:true },
+  stylePomp:{ id:'velvet', name:'The Velvet Pomp', top:.66, sideTop:.16, sideBottom:.05, backTop:.16, backBottom:.05, beard:.10, mustache:.08, fade:true, color:null, colorName:null, difficulty:4, tags:['High pomp','Skin fade'], signature:true }
+};
+const NAMES = [['Marcus J.','FIRST-TIMER'],['Dante R.','REGULAR'],['Elias V.','WALK-IN'],['Noah K.','REGULAR'],['Andre B.','FIRST-TIMER'],['Miles T.','VIP'],['Theo S.','WALK-IN'],['Julian P.','REGULAR'],['Rowan M.','VIP'],['Calvin D.','FIRST-TIMER'],['Ezra L.','WALK-IN'],['Micah F.','REGULAR']];
+const SKIN_TONES = ['#8d5a3f','#a96f4c','#c78e66','#6b412f','#d7a37a','#9b6246','#b87b55','#f0bf99','#5f3a2b','#c9906c'];
+const HAIR_TONES = ['#2a1a12','#3d2418','#1e1b1a','#5b3623','#7a4a2b','#c9b48e','#8d7257','#2f2622'];
+const EYE_TONES = ['#5a3a20','#2f5e57','#3d5a80','#493623','#4e7a4d','#6a4f8a'];
+const CAPE_TONES = ['#1e3431','#392025','#252a38','#3a3023','#1d2924'];
+
+const TOOLS = [
+  { id:'clippers', name:'Clippers', icon:'clippers', key:'1', hint:'<b>Hold + drag</b> across the hair. Set the guard for your fade.' },
+  { id:'scissors', name:'Scissors', icon:'scissors', key:'2', hint:'<b>Glide lightly</b> for precision. Perfect for the top and detail.' },
+  { id:'razor', name:'Razor', icon:'razor', key:'3', hint:'<b>Shave the beard</b> and mustache smooth. Keep it off the scalp.' },
+  { id:'trimmer', name:'Trimmer', icon:'trimmer', key:'4', hint:'<b>Shape facial hair</b> with the guard. Great for stubble and lines.' },
+  { id:'wash', name:'Wash & Dry', icon:'wash', key:'5', hint:'<b>Refresh the client.</b> Comfort and mood rise while you work.' },
+  { id:'dye', name:'Dye Spray', icon:'dye', key:'6', hint:'<b>Pick a shade</b> and mist evenly. Only the scalp takes color.' }
+];
+const GUARD_MM = [0.5,3,6,10];
+const CLIPPER_LENGTHS = [.018,.075,.15,.24];
+const TRIM_LENGTHS = [.02,.06,.11,.18];
+const TOOL_RADIUS = { clippers:.165, scissors:.105, razor:.18, trimmer:.145, wash:.26, dye:.235 };
+const BASE_DYE_COLORS = [{name:'Cyan',hex:'#38e8d0'},{name:'Rose',hex:'#ff5e9c'},{name:'Violet',hex:'#9f6bff'},{name:'Gold',hex:'#ffc857'},{name:'Lime',hex:'#a5f25a'},{name:'Silver',hex:'#d8dbe2'}];
+const PREMIUM_DYE_COLORS = [{name:'Chrome',hex:'#9beeff'},{name:'Ink',hex:'#252738'},{name:'Copper',hex:'#cf7544'}];
+
+const state = {
+  started:false,active:false,paused:false,reveal:false,revealT:0,session:0,client:null,style:null,
+  tool:'clippers',guard:1,dye:'#38e8d0',patience:100,satisfaction:0,comfort:64,hairScore:0,colorScore:1,overall:0,
+  dyedFraction:0,washAmount:0,overcut:0,everCut:false,chairTarget:0,spawnT:1,time:0,lastMeter:0,lastFloat:0,tutorialStep:0,
+  snapshot:null,metrics:null,payout:null,modalOpen:false,finishQueued:false,
+  pointer:{down:false,over:false,id:null,local:new THREE.Vector3(),world:new THREE.Vector3(),normal:new THREE.Vector3(),valid:false},
+  blink:{next:2.5,t:0},buzzTimer:0,snipTimer:0,sprayTimer:0,washTimer:0,dyeApplyTimer:0,signFlicker:0,lastCutSound:0
+};
+
+const dom = {
+  loader:$('#loader'),canvas:$('#scene'),startScreen:$('#startScreen'),hud:$('#hud'),
+  openShopBtn:$('#openShopBtn'),startShopBtn:$('#startShopBtn'),startSoundBtn:$('#startSoundBtn'),startSessions:$('#startSessions'),startBest:$('#startBest'),
+  clientNumber:$('#clientNumber'),clientAvatar:$('#clientAvatar'),clientVibe:$('#clientVibe'),clientName:$('#clientName'),requestStyle:$('#requestStyle'),requestTags:$('#requestTags'),
+  specTop:$('#specTop'),specSides:$('#specSides'),specBeard:$('#specBeard'),specColor:$('#specColor'),
+  patienceFill:$('#patienceFill'),patienceVal:$('#patienceVal'),patienceMeter:$('#patienceMeter'),moodFill:$('#moodFill'),moodVal:$('#moodVal'),moodMeter:$('#moodMeter'),
+  toolList:$('#toolList'),toolOptions:$('#toolOptions'),hintBar:$('#hintBar'),finishBtn:$('#finishBtn'),turnLeft:$('#turnLeft'),turnRight:$('#turnRight'),
+  coinCount:$('#coinCount'),coinPill:$('#coinPill'),shopCoins:$('#shopCoins'),shopScroll:$('#shopScroll'),
+  shopModal:$('#shopModal'),shopClose:$('#shopClose'),hudShopBtn:$('#hudShopBtn'),helpBtn:$('#helpBtn'),helpModal:$('#helpModal'),helpClose:$('#helpClose'),
+  soundBtn:$('#soundBtn'),toastStack:$('#toastStack'),wipe:$('#wipe'),revealFlash:$('#revealFlash'),
+  resultModal:$('#resultModal'),resultPhoto:$('#resultPhoto'),photoStyle:$('#photoStyle'),photoDate:$('#photoDate'),resultTitle:$('#resultTitle'),resultStars:$('#resultStars'),ratingWord:$('#ratingWord'),ratingQuote:$('#ratingQuote'),
+  payBase:$('#payBase'),payStars:$('#payStars'),payTip:$('#payTip'),payTotal:$('#payTotal'),nextClientBtn:$('#nextClientBtn'),resultShopBtn:$('#resultShopBtn'),savePhotoBtn:$('#savePhotoBtn'),resultSoundBtn:$('#resultSoundBtn')
+};
+class AudioEngine {
+  constructor(){
+    this.ctx=null;this.master=null;this.enabled=profile.sound;this.buzzGain=null;this.hissGain=null;this.buzzOsc=null;this.buzzOsc2=null;this.buzzFilter=null;this.noise=null;this.lastSnip=0;
+  }
+  init(){
+    if(this.ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    this.ctx = new AC();
+    this.master = this.ctx.createGain();
+    this.master.gain.value = this.enabled ? .46 : 0;
+    this.master.connect(this.ctx.destination);
+    this.noise = this.makeNoise(2.4);
+    this.buildToolLoop();
+    this.buildAmbience();
+  }
+  resume(){
+    this.init();
+    if(this.ctx && this.ctx.state==='suspended') this.ctx.resume();
+    if(this.ctx && this.enabled) this.master.gain.setTargetAtTime(.46,this.ctx.currentTime,.08);
+  }
+  setEnabled(on){
+    this.enabled=on;profile.sound=on;persist();
+    if(this.ctx) this.master.gain.setTargetAtTime(on?.46:0,this.ctx.currentTime,.06);
+  }
+  toggle(){ this.setEnabled(!this.enabled); return this.enabled; }
+  makeNoise(seconds=1){
+    if(!this.ctx) return null;
+    const buffer=this.ctx.createBuffer(1,Math.floor(this.ctx.sampleRate*seconds),this.ctx.sampleRate);
+    const data=buffer.getChannelData(0);
+    for(let i=0;i<data.length;i++) data[i]=Math.random()*2-1;
+    return buffer;
+  }
+  buildToolLoop(){
+    if(!this.ctx) return;
+    this.buzzOsc=this.ctx.createOscillator();this.buzzOsc.type='sawtooth';this.buzzOsc.frequency.value=92;
+    this.buzzOsc2=this.ctx.createOscillator();this.buzzOsc2.type='square';this.buzzOsc2.frequency.value=184;
+    this.buzzFilter=this.ctx.createBiquadFilter();this.buzzFilter.type='lowpass';this.buzzFilter.frequency.value=720;this.buzzFilter.Q.value=2;
+    const g2=this.ctx.createGain();g2.gain.value=.21;
+    this.buzzGain=this.ctx.createGain();this.buzzGain.gain.value=0;
+    this.buzzOsc.connect(this.buzzFilter);this.buzzOsc2.connect(g2);g2.connect(this.buzzFilter);this.buzzFilter.connect(this.buzzGain);this.buzzGain.connect(this.master);
+    this.buzzOsc.start();this.buzzOsc2.start();
+    const hissSource=this.ctx.createBufferSource();hissSource.buffer=this.noise;hissSource.loop=true;
+    const hissFilter=this.ctx.createBiquadFilter();hissFilter.type='bandpass';hissFilter.frequency.value=2400;hissFilter.Q.value=.7;
+    this.hissGain=this.ctx.createGain();this.hissGain.gain.value=0;
+    hissSource.connect(hissFilter);hissFilter.connect(this.hissGain);this.hissGain.connect(this.master);hissSource.start();
+  }
+  buildAmbience(){
+    if(!this.ctx) return;
+    const amb=this.ctx.createGain();amb.gain.value=.036;amb.connect(this.master);
+    const chords=[[110,164.81,220,277.18],[98,146.83,196,246.94],[87.31,130.81,174.61,220],[103.83,155.56,207.65,261.63]];
+    const filter=this.ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=520;filter.Q.value=.4;filter.connect(amb);
+    chords.forEach((chord,c)=>chord.forEach((freq,i)=>{
+      const o=this.ctx.createOscillator();o.type=i===0?'sine':'triangle';o.frequency.value=freq;
+      const g=this.ctx.createGain();g.gain.value=i===0?.1:.035;
+      const lfo=this.ctx.createOscillator();lfo.type='sine';lfo.frequency.value=.045+c*.013;
+      const lfoGain=this.ctx.createGain();lfoGain.gain.value=.03;lfo.connect(lfoGain);lfoGain.connect(g.gain);lfo.start();
+      o.connect(g);g.connect(filter);o.start();
+    }));
+    const noiseSource=this.ctx.createBufferSource();noiseSource.buffer=this.noise;noiseSource.loop=true;
+    const lp=this.ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=320;
+    const ng=this.ctx.createGain();ng.gain.value=.026;
+    noiseSource.connect(lp);lp.connect(ng);ng.connect(this.master);noiseSource.start();
+  }
+  setToolSound(tool,active){
+    if(!this.ctx) return;
+    const t=this.ctx.currentTime;
+    let buzz=0,hiss=0,freq=92,filterFreq=720;
+    if(active){
+      if(tool==='clippers'){buzz=.19;freq=88+state.guard*13;filterFreq=680+state.guard*80;}
+      else if(tool==='trimmer'){buzz=.14;freq=118+state.guard*10;filterFreq=950;}
+      else if(tool==='razor'){hiss=.075;}
+      else if(tool==='wash'){hiss=.065;}
+      else if(tool==='dye'){hiss=.05;}
+    }
+    this.buzzGain.gain.setTargetAtTime(buzz,t,.035);
+    this.hissGain.gain.setTargetAtTime(hiss,t,.045);
+    if(this.buzzOsc) this.buzzOsc.frequency.setTargetAtTime(freq,t,.08);
+    if(this.buzzOsc2) this.buzzOsc2.frequency.setTargetAtTime(freq*2.03,t,.08);
+    if(this.buzzFilter) this.buzzFilter.frequency.setTargetAtTime(filterFreq,t,.08);
+  }
+  tone(freq,duration=.14,type='sine',volume=.09,delay=0){
+    if(!this.ctx || !this.enabled) return;
+    const t=this.ctx.currentTime+delay;
+    const o=this.ctx.createOscillator();o.type=type;o.frequency.setValueAtTime(freq,t);
+    const g=this.ctx.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(volume,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+duration);
+    o.connect(g);g.connect(this.master);o.start(t);o.stop(t+duration+.04);
+  }
+  snip(){
+    if(!this.ctx || !this.enabled) return;
+    const now=performance.now();if(now-this.lastSnip<85) return;this.lastSnip=now;
+    const t=this.ctx.currentTime;
+    const source=this.ctx.createBufferSource();source.buffer=this.noise;
+    const hp=this.ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=2600;
+    const g=this.ctx.createGain();g.gain.setValueAtTime(.13,t);g.gain.exponentialRampToValueAtTime(.0001,t+.055);
+    source.connect(hp);hp.connect(g);g.connect(this.master);source.start(t);source.stop(t+.07);
+    this.tone(1900+Math.random()*600,.035,'triangle',.025);
+  }
+  coin(){ if(this.ctx&&this.enabled) [523.25,659.25,783.99].forEach((f,i)=>this.tone(f,.2,'sine',.08,i*.07)); }
+  click(){ this.resume();this.tone(420,.055,'triangle',.035); }
+  uiOpen(){ this.resume();this.tone(310,.1,'sine',.04);this.tone(465,.13,'sine',.03,.05); }
+  star(index){ this.tone(523.25*Math.pow(1.12246,index),.28,'sine',.075,index*.09); }
+  cash(){ [659.25,783.99,1046.5,1318.5].forEach((f,i)=>this.tone(f,.34,'sine',.07,i*.08)); }
+}
+const audio = new AudioEngine();
+
+function setSoundIcon(){
+  const icon = profile.sound ? '#i-sound' : '#i-mute';
+  $$('#soundBtn use, #startSoundBtn use, #resultSoundBtn use').forEach(u=>u.setAttribute('href',icon));
+}
+function toggleSound(){
+  audio.resume();audio.toggle();setSoundIcon();audio.click();
+  toast(profile.sound?'Sound on. The shop is alive.':'Sound muted.',profile.sound?'good':'');
+}
+function toast(message,kind=''){
+  const el=document.createElement('div');el.className=`toast ${kind}`;
+  const icon=kind==='bad'?'i-close':kind==='good'?'i-check':'i-spark';
+  el.innerHTML=`<svg class="icon"><use href="#${icon}"/></svg><span>${message}</span>`;
+  dom.toastStack.appendChild(el);setTimeout(()=>el.remove(),3400);
+}
+function floatScore(text){
+  if(!world.headGroup) return;
+  const rect=dom.canvas.getBoundingClientRect();const v=new THREE.Vector3();
+  world.headGroup.getWorldPosition(v);v.y+=.38;v.project(world.camera);
+  const el=document.createElement('div');el.className='floating-score';el.textContent=text;
+  el.style.left=`${(v.x*.5+.5)*rect.width}px`;el.style.top=`${(-v.y*.5+.5)*rect.height}px`;
+  document.body.appendChild(el);setTimeout(()=>el.remove(),1200);
+}
+function updateCoinUI(bump=false){
+  dom.coinCount.textContent=profile.coins.toLocaleString();dom.shopCoins.textContent=profile.coins.toLocaleString();
+  if(bump){dom.coinPill.classList.remove('bump');void dom.coinPill.offsetWidth;dom.coinPill.classList.add('bump');}
+}
+function updateStartStats(){
+  dom.startSessions.textContent=String(profile.stats.cuts).padStart(2,'0');
+  dom.startBest.textContent=profile.stats.best?`${profile.stats.best}★`:'—';
+}
+function hasUpgrade(id){ return !!profile.upgrades[id]; }
+function unlockedStyles(){
+  const styles=[...BASE_STYLES];
+  Object.entries(SIGNATURE_STYLES).forEach(([id,style])=>{ if(hasUpgrade(id)) styles.push(style); });
+  return styles;
+}
+function availableDyeColors(){ return hasUpgrade('dyeLab')?[...BASE_DYE_COLORS,...PREMIUM_DYE_COLORS]:[...BASE_DYE_COLORS]; }
+function applyNeon(key,announce=false){
+  const set=NEON[key]||NEON.classic;profile.neon=key;persist();
+  document.documentElement.style.setProperty('--accent',set.ui);
+  document.documentElement.style.setProperty('--accent-2',set.secondary);
+  if(world?.neonMats) world.neonMats.forEach(m=>{m.color.set(set.color);if(m.emissive)m.emissive.set(set.glow);});
+  if(world?.neonLights) world.neonLights.forEach(l=>l.color.set(set.color));
+  if(world?.secondaryNeonMats) world.secondaryNeonMats.forEach(m=>{m.color.set(set.secondary);if(m.emissive)m.emissive.set(set.secondary);});
+  if(world?.signLight) world.signLight.color.set(set.color);
+  if(world?.signPlane){ const tex=makeNeonTexture(set.color,set.secondary); const old=world.signPlane.material.map; world.signPlane.material.map=tex; world.signPlane.material.needsUpdate=true; old?.dispose(); }
+  if(announce) toast(`${set.name} neon installed.`,'good');
+}
+function initThree(){
+  const renderer=new THREE.WebGLRenderer({canvas:dom.canvas,antialias:true,powerPreference:'high-performance',preserveDrawingBuffer:true,alpha:false});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,window.innerWidth<800?2:1.8));
+  renderer.setSize(window.innerWidth,window.innerHeight,false);
+  renderer.outputColorSpace=THREE.SRGBColorSpace;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=.96;
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  const scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x071010);
+  scene.fog=new THREE.Fog(0x071010,8,18);
+  const camera=new THREE.PerspectiveCamera(38,window.innerWidth/window.innerHeight,.1,60);
+  camera.position.set(0,1.78,4.8);camera.lookAt(0,1.5,0);
+  const pmrem=new THREE.PMREMGenerator(renderer);
+  const env=new RoomEnvironment();
+  const envMap=pmrem.fromScene(env,.04).texture;
+  scene.environment=envMap;scene.environmentIntensity=.42;
+  env.dispose();pmrem.dispose();
+  const composer=new EffectComposer(renderer);
+  composer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.6));
+  composer.addPass(new RenderPass(scene,camera));
+  const bloom=new UnrealBloomPass(new THREE.Vector2(window.innerWidth,window.innerHeight),.24,.5,.95);
+  composer.addPass(bloom);
+  const world={
+    renderer,scene,camera,composer,bloom,environment:envMap,neonMats:[],secondaryNeonMats:[],neonLights:[],signLight:null,
+    chairRoot:null,client:null,headGroup:null,headMesh:null,hairCap:null,hairMeshes:[],fibers:[],beardFibers:[],timers:[],
+    toolPivot:null,toolModels:{},cursorRing:null,particles:null,mist:null,dust:null,pendantBulbs:[],signPlane:null,mirror:null,clickZones:[],cityLight:null,
+    baseCamera:new THREE.Vector3(0,1.78,4.8),lookTarget:new THREE.Vector3(0,1.5,0),parallax:new THREE.Vector2()
+  };
+  window.__FADEHOUSE={state,profile,world,scene,camera,renderer};
+  return world;
+}
+let world;
+try{ world=initThree(); }
+catch(err){
+  console.error(err);dom.loader.classList.add('done');$('#webglFallback').style.display='grid';throw err;
+}
+
+function makeWoodTexture(){
+  const c=document.createElement('canvas');c.width=1024;c.height=1024;const ctx=c.getContext('2d');
+  ctx.fillStyle='#2b1b14';ctx.fillRect(0,0,1024,1024);
+  for(let row=0;row<10;row++){
+    const y=row*102.4;ctx.fillStyle=row%2?'#332018':'#2a1a13';ctx.fillRect(0,y,1024,101);
+    ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(1024,y);ctx.stroke();
+    for(let i=0;i<40;i++){
+      ctx.strokeStyle=`rgba(${90+Math.random()*40},${52+Math.random()*20},${32+Math.random()*14},${.04+Math.random()*.08})`;
+      ctx.lineWidth=1+Math.random()*2;const yy=y+Math.random()*100;
+      ctx.beginPath();ctx.moveTo(Math.random()*200,yy);ctx.bezierCurveTo(300+Math.random()*200,yy-12,600+Math.random()*200,yy+10,1024,yy+Math.random()*4-2);ctx.stroke();
+    }
+  }
+  const tex=new THREE.CanvasTexture(c);tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(3.5,3.5);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=8;return tex;
+}
+function makeRugTexture(){
+  const c=document.createElement('canvas');c.width=1024;c.height=1024;const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,1024,1024);ctx.fillStyle='#172b28';ctx.beginPath();ctx.arc(512,512,506,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='rgba(231,184,107,.55)';ctx.lineWidth=5;ctx.beginPath();ctx.arc(512,512,475,0,Math.PI*2);ctx.stroke();
+  ctx.strokeStyle='rgba(231,184,107,.22)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(512,512,445,0,Math.PI*2);ctx.stroke();
+  for(let i=0;i<48;i++){
+    const a=i/48*Math.PI*2;ctx.save();ctx.translate(512,512);ctx.rotate(a);
+    ctx.fillStyle=i%2?'rgba(231,184,107,.16)':'rgba(111,228,193,.10)';
+    ctx.beginPath();ctx.moveTo(360,0);ctx.lineTo(420,12);ctx.lineTo(420,-12);ctx.closePath();ctx.fill();ctx.restore();
+  }
+  ctx.strokeStyle='rgba(231,184,107,.18)';ctx.lineWidth=3;
+  for(let r=300;r>90;r-=50){ctx.beginPath();ctx.arc(512,512,r,0,Math.PI*2);ctx.stroke();}
+  ctx.fillStyle='rgba(7,20,18,.5)';ctx.beginPath();ctx.arc(512,512,72,0,Math.PI*2);ctx.fill();
+  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=8;return tex;
+}
+function makeNeonTexture(color,secondary){
+  const c=document.createElement('canvas');c.width=1024;c.height=420;const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,1024,420);ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.shadowColor=color;ctx.shadowBlur=34;ctx.fillStyle=color;
+  ctx.font='700 152px "Bebas Neue", "Arial Black", sans-serif';ctx.fillText('FADEHOUSE',512,178);
+  ctx.shadowBlur=18;ctx.font='600 34px "Bebas Neue", sans-serif';ctx.fillStyle=secondary;ctx.fillText('BARBER CO.  ·  EST. 1926',514,292);
+  ctx.strokeStyle=color;ctx.lineWidth=4;ctx.shadowBlur=16;ctx.beginPath();ctx.moveTo(285,324);ctx.lineTo(739,324);ctx.stroke();
+  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=8;return tex;
+}
+function makePosterTexture(title,subtitle,accent){
+  const c=document.createElement('canvas');c.width=700;c.height=1000;const ctx=c.getContext('2d');
+  const g=ctx.createLinearGradient(0,0,700,1000);g.addColorStop(0,'#1d3b35');g.addColorStop(1,'#0b1b19');
+  ctx.fillStyle=g;ctx.fillRect(0,0,700,1000);ctx.strokeStyle='rgba(231,184,107,.4)';ctx.lineWidth=2;ctx.strokeRect(28,28,644,944);
+  ctx.textAlign='center';ctx.fillStyle=accent;ctx.font='700 64px "Bodoni Moda", serif';ctx.save();ctx.translate(350,270);ctx.rotate(-.1);ctx.fillText('SCISSORS',0,0);ctx.restore();
+  ctx.strokeStyle='rgba(231,184,107,.7)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(250,240,78,0,Math.PI*2);ctx.arc(450,240,78,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(310,285);ctx.lineTo(540,610);ctx.moveTo(390,285);ctx.lineTo(160,610);ctx.stroke();
+  ctx.fillStyle='#f4e8d3';ctx.font='700 96px "Bodoni Moda", serif';ctx.fillText(title,350,760);
+  ctx.fillStyle=accent;ctx.font='500 24px "Bebas Neue", sans-serif';ctx.fillText(subtitle,350,812);
+  ctx.fillStyle='rgba(244,232,211,.55)';ctx.font='400 17px "DM Sans", sans-serif';ctx.fillText('FADEHOUSE BARBER CO.  ·  CHAIR NO. 01',350,910);
+  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;return tex;
+}
+function makeBarberPoleTexture(){
+  const c=document.createElement('canvas');c.width=256;c.height=512;const ctx=c.getContext('2d');
+  ctx.fillStyle='#e9e4d8';ctx.fillRect(0,0,256,512);
+  for(let i=-4;i<16;i++){
+    ctx.save();ctx.translate(0,i*70);ctx.rotate(-.55);ctx.fillStyle=i%2?'#b92f3c':'#2e6a91';ctx.fillRect(-200,0,700,35);ctx.restore();
+  }
+  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(1,1.8);return tex;
+}
+function makeCityTexture(){
+  const c=document.createElement('canvas');c.width=512;c.height=768;const ctx=c.getContext('2d');
+  const g=ctx.createLinearGradient(0,0,0,768);g.addColorStop(0,'#08161f');g.addColorStop(.55,'#163c47');g.addColorStop(1,'#7b6a4e');
+  ctx.fillStyle=g;ctx.fillRect(0,0,512,768);
+  for(let i=0;i<80;i++){
+    const x=Math.random()*512,y=300+Math.random()*420,r=Math.random()*20+2;
+    ctx.fillStyle=`rgba(${180+Math.random()*70},${150+Math.random()*80},${90+Math.random()*70},${.06+Math.random()*.25})`;
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+  }
+  for(let i=0;i<14;i++){
+    const w=20+Math.random()*48,h=120+Math.random()*380,x=Math.random()*512;
+    ctx.fillStyle='rgba(4,12,15,.72)';ctx.fillRect(x,768-h,w,h);
+    for(let yy=768-h+18;yy<740;yy+=24){
+      if(Math.random()<.35) continue;
+      ctx.fillStyle=Math.random()<.2?'rgba(255,200,120,.55)':'rgba(120,200,210,.22)';ctx.fillRect(x+7+Math.random()*(w-16),yy,4,6);
+    }
+  }
+  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;return tex;
+}
+
+function makeMirrorTexture(){
+  const c=document.createElement('canvas');c.width=768;c.height=768;const ctx=c.getContext('2d');
+  const g=ctx.createLinearGradient(0,0,768,768);g.addColorStop(0,'#1b3b38');g.addColorStop(.42,'#102826');g.addColorStop(1,'#081817');
+  ctx.fillStyle=g;ctx.fillRect(0,0,768,768);
+  const sheen=ctx.createLinearGradient(60,0,660,768);sheen.addColorStop(0,'rgba(174,219,204,0)');sheen.addColorStop(.46,'rgba(174,219,204,.09)');sheen.addColorStop(.58,'rgba(239,202,135,.06)');sheen.addColorStop(1,'rgba(174,219,204,0)');
+  ctx.fillStyle=sheen;ctx.fillRect(0,0,768,768);
+  for(let i=0;i<3;i++){
+    const x=176+i*204,y=112+(i%2)*22;
+    const rg=ctx.createRadialGradient(x,y,2,x,y,105);
+    rg.addColorStop(0,'rgba(255,230,186,.5)');rg.addColorStop(.18,'rgba(255,198,112,.16)');rg.addColorStop(1,'rgba(255,198,112,0)');
+    ctx.fillStyle=rg;ctx.beginPath();ctx.arc(x,y,105,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,244,218,.8)';ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.fill();
+  }
+  ctx.strokeStyle='rgba(231,184,107,.13)';ctx.lineWidth=3;
+  for(let i=0;i<4;i++){const y=560+i*34;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(768,y-18);ctx.stroke();}
+  const vig=ctx.createRadialGradient(384,384,130,384,384,470);vig.addColorStop(0,'rgba(0,0,0,0)');vig.addColorStop(1,'rgba(0,0,0,.58)');
+  ctx.fillStyle=vig;ctx.fillRect(0,0,768,768);
+  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=8;return tex;
+}
+const M={
+  wood:new THREE.MeshStandardMaterial({map:makeWoodTexture(),roughness:.72,metalness:.05}),
+  wall:new THREE.MeshStandardMaterial({color:0x102422,roughness:.82}),
+  wallDark:new THREE.MeshStandardMaterial({color:0x0a1817,roughness:.78}),
+  wallPanel:new THREE.MeshStandardMaterial({color:0x0d201e,roughness:.8}),
+  trim:new THREE.MeshStandardMaterial({color:0x0b1b19,roughness:.45,metalness:.15}),
+  gold:new THREE.MeshStandardMaterial({color:0xc99a4e,metalness:.92,roughness:.28}),
+  goldSoft:new THREE.MeshStandardMaterial({color:0x8d6a36,metalness:.72,roughness:.42}),
+  chrome:new THREE.MeshStandardMaterial({color:0xd2d4cf,metalness:1,roughness:.16}),
+  darkMetal:new THREE.MeshStandardMaterial({color:0x141b1b,metalness:.8,roughness:.3}),
+  black:new THREE.MeshStandardMaterial({color:0x0b1010,roughness:.5}),
+  leather:new THREE.MeshPhysicalMaterial({color:0x3a171d,roughness:.35,metalness:.03,clearcoat:.35,clearcoatRoughness:.4}),
+  leatherDark:new THREE.MeshStandardMaterial({color:0x1d0e11,roughness:.6}),
+  mirror:new THREE.MeshPhysicalMaterial({map:makeMirrorTexture(),color:0xc7d8d0,metalness:.62,roughness:.14,envMapIntensity:1.35,emissive:0x203c36,emissiveIntensity:.16}),
+  cream:new THREE.MeshStandardMaterial({color:0xe8dfcf,roughness:.8}),
+  plant:new THREE.MeshStandardMaterial({color:0x2f6a4f,roughness:.68}),
+  plantDark:new THREE.MeshStandardMaterial({color:0x173b2b,roughness:.8})
+};
+function mesh(geo,mat,x=0,y=0,z=0){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);return m;}
+function box(w,h,d,mat,x=0,y=0,z=0){return mesh(new THREE.BoxGeometry(w,h,d),mat,x,y,z);}
+function rounded(w,h,d,r,mat,x=0,y=0,z=0,segments=3){return mesh(new RoundedBoxGeometry(w,h,d,segments,r),mat,x,y,z);}
+function cyl(rt,rb,h,mat,x=0,y=0,z=0,segments=20){return mesh(new THREE.CylinderGeometry(rt,rb,h,segments),mat,x,y,z);}
+function addShadow(obj,cast=true,receive=false){obj.traverse(o=>{if(o.isMesh){o.castShadow=cast;o.receiveShadow=receive;}});return obj;}
+function buildLighting(){
+  const s=world.scene;
+  const hemi=new THREE.HemisphereLight(0x9bc6c3,0x160c09,.34);s.add(hemi);
+  const key=new THREE.SpotLight(0xffd6aa,30,14,.58,.72,1.25);
+  key.position.set(2.7,4.6,3.55);key.target.position.set(0,1.7,0);key.castShadow=true;
+  key.shadow.mapSize.set(1024,1024);key.shadow.bias=-.0004;key.shadow.camera.near=.5;key.shadow.camera.far=12;
+  s.add(key);s.add(key.target);
+  const fill=new THREE.SpotLight(0x6fdcff,9,13,.62,.9,1.4);fill.position.set(-3.4,3.5,-1.8);fill.target.position.set(0,1.65,0);s.add(fill);s.add(fill.target);
+  const rim=new THREE.SpotLight(0xff7c96,8,12,.52,1,1.5);rim.position.set(0,3.8,-3.2);rim.target.position.set(0,2,0);s.add(rim);s.add(rim.target);
+  const warm=new THREE.PointLight(0xffb678,5,7,2);warm.position.set(0,3.1,.3);s.add(warm);
+  const frontFill=new THREE.PointLight(0xbfe9e5,2.5,9,2);frontFill.position.set(0,1.6,4.2);s.add(frontFill);
+  world.pendantBulbs.push(warm);
+}
+function buildRoom(){
+  const s=world.scene;
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(30,30),M.wood);floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;s.add(floor);
+  const rug=new THREE.Mesh(new THREE.CircleGeometry(2.05,64),new THREE.MeshStandardMaterial({map:makeRugTexture(),transparent:true,roughness:.88}));
+  rug.rotation.x=-Math.PI/2;rug.position.y=.012;rug.receiveShadow=true;s.add(rug);
+  const back=box(14,5.8,.22,M.wall,0,2.9,-4.35);back.receiveShadow=true;s.add(back);
+  const left=box(.22,5.8,10,M.wallDark,-4.85,2.9,.2);left.receiveShadow=true;s.add(left);
+  const right=box(.22,5.8,10,M.wallDark,4.85,2.9,.2);right.receiveShadow=true;s.add(right);
+  s.add(box(14,.2,10,M.trim,0,5.7,-.5));
+  s.add(box(13.6,.22,.12,M.trim,0,.13,-4.2));
+  s.add(box(13.5,.055,.1,M.goldSoft,0,1.25,-4.19));
+  for(let i=-6;i<=6;i++) s.add(box(1.28,1.55,.055,M.wallPanel,i*1.05,1.82,-4.2));
+
+  const mirrorFrame=new THREE.Group();mirrorFrame.position.set(0,2.45,-4.17);
+  const mirror=new THREE.Mesh(new THREE.PlaneGeometry(2.34,2.2),M.mirror);mirrorFrame.add(mirror);
+  mirrorFrame.add(rounded(2.58,.1,.13,.02,M.gold,0,1.13,0));
+  mirrorFrame.add(rounded(2.58,.1,.13,.02,M.gold,0,-1.13,0));
+  mirrorFrame.add(rounded(.1,2.36,.13,.02,M.gold,-1.24,0,0));
+  mirrorFrame.add(rounded(.1,2.36,.13,.02,M.gold,1.24,0,0));
+  const glowMat=new THREE.MeshBasicMaterial({color:0xffd6aa,transparent:true,opacity:.07,blending:THREE.AdditiveBlending,depthWrite:false});
+  const mGlow=new THREE.Mesh(new THREE.PlaneGeometry(.22,1.6),glowMat);mGlow.position.set(-.58,0,.012);mirrorFrame.add(mGlow);
+  const mGlow2=mGlow.clone();mGlow2.position.x=.62;mGlow2.scale.x=.4;mirrorFrame.add(mGlow2);
+  s.add(mirrorFrame);world.mirror=mirror;
+
+  const signMat=new THREE.MeshBasicMaterial({map:makeNeonTexture(NEON[profile.neon].color,NEON[profile.neon].secondary),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+  const sign=new THREE.Mesh(new THREE.PlaneGeometry(4.1,1.68),signMat);sign.position.set(0,3.6,-4.21);s.add(sign);
+  world.signPlane=sign;world.neonMats.push(signMat);
+  const signLight=new THREE.PointLight(NEON[profile.neon].glow,7,8,2);signLight.position.set(0,2.95,-3.3);s.add(signLight);
+  world.neonLights.push(signLight);world.signLight=signLight;
+
+  const neonArcMat=new THREE.MeshBasicMaterial({color:NEON[profile.neon].secondary});
+  const neonArc=new THREE.Mesh(new THREE.TorusGeometry(.48,.018,8,48,Math.PI),neonArcMat);neonArc.position.set(-3.5,3.55,-4.19);neonArc.rotation.z=Math.PI;s.add(neonArc);
+  world.secondaryNeonMats.push(neonArcMat);
+  const neonLineMat=new THREE.MeshBasicMaterial({color:NEON[profile.neon].secondary,transparent:true,opacity:.8});
+  const neonLine=new THREE.Mesh(new THREE.PlaneGeometry(1.15,.025),neonLineMat);neonLine.position.set(3.55,4.2,-4.19);s.add(neonLine);
+  world.secondaryNeonMats.push(neonLineMat);
+
+  const poster1=new THREE.Mesh(new THREE.PlaneGeometry(1.45,2.1),new THREE.MeshStandardMaterial({map:makePosterTexture('THE FADE','A CUT ABOVE','#e7b86b'),roughness:.6}));
+  poster1.position.set(4.72,2.3,-2.3);poster1.rotation.y=-Math.PI/2;s.add(poster1);
+  const poster2=new THREE.Mesh(new THREE.PlaneGeometry(1.35,1.95),new THREE.MeshStandardMaterial({map:makePosterTexture('GOOD HAIR','GOOD DAY','#6fe4c1'),roughness:.6}));
+  poster2.position.set(4.72,2.3,.35);poster2.rotation.y=-Math.PI/2;s.add(poster2);
+
+  const win=new THREE.Group();win.position.set(-4.72,2.6,-1.1);win.rotation.y=Math.PI/2;
+  win.add(box(2.5,3,.08,M.trim,0,0,0));
+  const city=new THREE.Mesh(new THREE.PlaneGeometry(2.24,2.72),new THREE.MeshBasicMaterial({map:makeCityTexture()}));city.position.z=.05;win.add(city);
+  for(let i=-1;i<=1;i++) win.add(box(.045,2.8,.1,M.trim,i*.74,0,.08));
+  win.add(box(2.35,.045,.1,M.trim,0,.06,.08));s.add(win);
+
+  const pole=new THREE.Group();pole.position.set(-3.55,0,-3.55);
+  pole.add(cyl(.32,.36,.16,M.gold,0,.08,0));
+  const poleGlass=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,2.1,24),new THREE.MeshPhysicalMaterial({map:makeBarberPoleTexture(),roughness:.15,metalness:.15,transparent:true,opacity:.95,emissive:0xffffff,emissiveIntensity:.08}));
+  poleGlass.position.y=1.25;pole.add(poleGlass);
+  pole.add(mesh(new THREE.SphereGeometry(.2,16,12),M.gold,0,2.38,0));
+  pole.add(cyl(.1,.16,.18,M.gold,0,2.56,0));addShadow(pole);s.add(pole);
+
+  const shelf=new THREE.Group();shelf.position.set(2.45,0,-4.05);
+  const cabinet=rounded(1.45,.85,.48,.06,M.wallDark,0,.43,0);cabinet.receiveShadow=true;shelf.add(cabinet);
+  shelf.add(box(1.5,.06,.52,M.goldSoft,0,.88,0));shelf.add(box(1.3,.02,.01,M.goldSoft,0,.3,.25));
+  const bottleColors=[0x7b4b31,0x385848,0x4b355e,0x6b3030,0x887044,0x293a4a];
+  for(let i=0;i<6;i++){
+    const h=.16+Math.random()*.14;
+    shelf.add(cyl(.045,.055,h,new THREE.MeshPhysicalMaterial({color:bottleColors[i],roughness:.15,metalness:.3,transparent:true,opacity:.85}),-.55+i*.22,.89+h/2,0,12));
+    shelf.add(cyl(.026,.032,.045,M.gold,-.55+i*.22,.91+h,0,10));
+  }
+  addShadow(shelf);s.add(shelf);
+
+  const plant=new THREE.Group();plant.position.set(-3.3,0,-3.2);
+  plant.add(cyl(.34,.28,.48,new THREE.MeshStandardMaterial({color:0x3b2b22,roughness:.65}),0,.24,0,24));
+  plant.add(cyl(.3,.3,.02,M.plantDark,0,.48,0,24));
+  for(let i=0;i<12;i++){
+    const leaf=new THREE.Mesh(new THREE.SphereGeometry(.35,12,8),i%2?M.plant:M.plantDark);
+    leaf.scale.set(.3,.08,1);leaf.position.set(rand(-.2,.2),.65+Math.random()*1.15,rand(-.2,.2));
+    leaf.rotation.set(rand(-.6,.6),rand(0,Math.PI*2),rand(-.7,.7));plant.add(leaf);
+  }
+  addShadow(plant);s.add(plant);
+
+  for(const x of [-1.35,1.35]){
+    const cord=cyl(.008,.008,1.2,M.black,x,4.65,-.2,6);s.add(cord);
+    const shade=cyl(.22,.32,.4,new THREE.MeshStandardMaterial({color:0x1d2e2b,metalness:.65,roughness:.38}),x,4.02,-.2,24);addShadow(shade);s.add(shade);
+    const bulb=new THREE.Mesh(new THREE.SphereGeometry(.09,16,12),new THREE.MeshBasicMaterial({color:0xffcf91}));bulb.position.set(x,3.84,-.2);s.add(bulb);
+    const light=new THREE.PointLight(0xffb56d,12,6,2);light.position.set(x,3.7,-.2);s.add(light);world.pendantBulbs.push(light);
+  }
+
+  const steamRing=new THREE.Mesh(new THREE.TorusGeometry(.37,.008,6,48),new THREE.MeshBasicMaterial({color:0xffd7a3,transparent:true,opacity:.22}));steamRing.position.set(-2.05,2.6,-3.95);s.add(steamRing);
+
+  buildClient();
+  buildTools();
+  buildParticles();
+  buildDust();
+  applyNeon(profile.neon);
+  addShadow(shelf,true,true);
+}
+function buildClient(){
+  const chairRoot=new THREE.Group();world.chairRoot=chairRoot;world.scene.add(chairRoot);
+  const chair=new THREE.Group();chairRoot.add(chair);
+  chair.add(cyl(.55,.62,.09,M.darkMetal,0,.045,0,32));
+  chair.add(mesh(new THREE.TorusGeometry(.42,.035,10,32),M.gold,0,.11,0));
+  chair.add(cyl(.11,.15,.24,M.chrome,0,.21,0,20));
+  chair.add(cyl(.075,.075,.48,M.chrome,0,.54,0,20));
+  chair.add(cyl(.2,.24,.13,M.darkMetal,0,.74,0,24));
+  const seat=rounded(.98,.18,.88,.09,M.leather,0,.85,.05);addShadow(seat);chair.add(seat);
+  const seatTrim=rounded(1.03,.045,.93,.02,M.goldSoft,0,.78,.05,2);chair.add(seatTrim);
+  const back=rounded(.91,.9,.18,.08,M.leather,0,1.32,-.35,4);back.rotation.x=-.09;addShadow(back);chair.add(back);
+  for(let i=0;i<3;i++) for(let j=0;j<2;j++){
+    const button=mesh(new THREE.SphereGeometry(.026,12,8),M.goldSoft,-.22+j*.44,1.13+i*.22,-.443);
+    button.scale.z=.45;chair.add(button);
+  }
+  const backTop=rounded(.95,.12,.22,.05,M.leatherDark,0,1.79,-.37,3);backTop.rotation.x=-.09;chair.add(backTop);
+  const headrest=rounded(.48,.18,.14,.06,M.leather,0,1.94,-.5,3);addShadow(headrest);chair.add(headrest);
+  const headrestBar=cyl(.025,.025,.18,M.chrome,0,1.84,-.48,10);chair.add(headrestBar);
+  for(const side of [-1,1]){
+    chair.add(cyl(.03,.03,.48,M.chrome,side*.63,1.03,.08,12).rotateZ(Math.PI/2));
+    const pad=rounded(.5,.075,.27,.035,M.leather,side*.63,1.07,.16,3);addShadow(pad);chair.add(pad);
+    const support=cyl(.032,.032,.42,M.chrome,side*.56,.93,.15,12);support.rotation.x=.2;chair.add(support);
+  }
+  const footBar=cyl(.035,.035,.66,M.chrome,0,.27,.88,12);footBar.rotation.z=Math.PI/2;chair.add(footBar);
+  const footPlate=rounded(.67,.055,.33,.03,M.darkMetal,0,.27,1.05,3);chair.add(footPlate);
+  for(const side of [-1,1]){
+    const brace=cyl(.022,.022,.34,M.chrome,side*.36,.18,.75,10);brace.rotation.x=.22;chair.add(brace);
+  }
+  addShadow(chair,true,true);
+
+  const root=new THREE.Group();chairRoot.add(root);
+  const skinMat=new THREE.MeshPhysicalMaterial({color:0xa96f4c,roughness:.52,clearcoat:.08,clearcoatRoughness:.6});
+  const hairMat=new THREE.MeshStandardMaterial({color:0x2a1a12,roughness:.62,metalness:.06});
+  const capeMat=new THREE.MeshPhysicalMaterial({color:0x1e3431,roughness:.34,metalness:.08,clearcoat:.22,side:THREE.DoubleSide});
+  const trouserMat=new THREE.MeshStandardMaterial({color:0x1c2425,roughness:.78});
+  const shoeMat=new THREE.MeshPhysicalMaterial({color:0x171412,roughness:.32,clearcoat:.35});
+  const shirtMat=new THREE.MeshStandardMaterial({color:0x182b2a,roughness:.82});
+  const eyeWhiteMat=new THREE.MeshStandardMaterial({color:0xe9e4d6,roughness:.32});
+  const lipMat=new THREE.MeshStandardMaterial({color:0x8b4f4b,roughness:.55});
+
+  const thighL=rounded(.25,.22,.58,.09,trouserMat,-.24,.62,.43,4);thighL.rotation.x=.13;root.add(thighL);
+  const thighR=rounded(.25,.22,.58,.09,trouserMat,.24,.62,.43,4);thighR.rotation.x=.13;root.add(thighR);
+  for(const x of [-.26,.26]){
+    const shin=rounded(.19,.2,.5,.08,trouserMat,x,.34,.85,4);shin.rotation.x=-.04;root.add(shin);
+    const shoe=rounded(.23,.12,.39,.06,shoeMat,x,.13,1.03,4);shoe.rotation.x=.01;root.add(shoe);
+    const sole=box(.24,.025,.4,M.black,x,.065,1.03);root.add(sole);
+  }
+  const torso=mesh(new THREE.CapsuleGeometry(.3,.36,8,16),shirtMat,0,1.24,0);torso.scale.z=.78;root.add(torso);
+  const capePts=[new THREE.Vector2(.29,1.57),new THREE.Vector2(.38,1.42),new THREE.Vector2(.48,1.18),new THREE.Vector2(.57,.95),new THREE.Vector2(.61,.78)];
+  const capeGeo=new THREE.LatheGeometry(capePts,48);
+  const cape=new THREE.Mesh(capeGeo,capeMat);cape.scale.z=.88;root.add(cape);
+  const shoulderCape=mesh(new THREE.SphereGeometry(.43,32,18),capeMat,0,1.45,0);shoulderCape.scale.set(1.05,.34,.8);addShadow(shoulderCape);root.add(shoulderCape);
+  const capeTrim=mesh(new THREE.TorusGeometry(.595,.018,6,64),M.goldSoft,0,.78,0);capeTrim.rotation.x=Math.PI/2;capeTrim.scale.z=.88;root.add(capeTrim);
+  const towel=mesh(new THREE.TorusGeometry(.28,.055,10,36),M.cream,0,1.6,0);towel.rotation.x=Math.PI/2;towel.scale.z=.9;addShadow(towel);root.add(towel);
+
+  for(const side of [-1,1]){
+    const upper=mesh(new THREE.CapsuleGeometry(.075,.28,5,10),capeMat,side*.4,1.25,.06);upper.rotation.z=side*.36;upper.rotation.x=.18;root.add(upper);
+    const fore=mesh(new THREE.CapsuleGeometry(.062,.22,5,10),skinMat,side*.55,1.04,.19);fore.rotation.z=side*.48;fore.rotation.x=.3;root.add(fore);
+    const hand=mesh(new THREE.SphereGeometry(.085,16,12),skinMat,side*.66,1.01,.29);hand.scale.set(.8,.55,1.15);root.add(hand);
+  }
+  const neck=cyl(.14,.16,.28,skinMat,0,1.66,0,20);root.add(neck);
+  const headGroup=new THREE.Group();headGroup.position.set(0,1.93,0);root.add(headGroup);
+  const head=mesh(new THREE.SphereGeometry(.38,48,32),skinMat,0,0,0);head.scale.set(1,1.07,.96);head.castShadow=true;head.receiveShadow=true;headGroup.add(head);
+  const jaw=mesh(new THREE.SphereGeometry(.29,32,24),skinMat,0,-.16,.055);jaw.scale.set(.96,.65,.9);headGroup.add(jaw);
+  for(const side of [-1,1]){
+    const ear=mesh(new THREE.SphereGeometry(.075,16,12),skinMat,side*.372,-.01,.01);ear.scale.set(.55,.95,.65);headGroup.add(ear);
+    const earInner=mesh(new THREE.SphereGeometry(.042,12,8),lipMat,side*.397,-.01,.02);earInner.scale.set(.3,.7,.3);headGroup.add(earInner);
+  }
+  const nose=mesh(new THREE.SphereGeometry(.062,20,16),skinMat,0,-.015,.353);nose.scale.set(.82,.8,1.22);nose.castShadow=true;headGroup.add(nose);
+  for(const side of [-1,1]){
+    const nostril=mesh(new THREE.SphereGeometry(.009,8,6),new THREE.MeshStandardMaterial({color:0x603b30,roughness:.6}),side*.023,-.045,.415);nostril.scale.z=.4;headGroup.add(nostril);
+  }
+  const eyeGroups=[];
+  for(const side of [-1,1]){
+    const eyeGroup=new THREE.Group();eyeGroup.position.set(side*.133,.057,.318);headGroup.add(eyeGroup);
+    const white=mesh(new THREE.SphereGeometry(.055,20,14),eyeWhiteMat,0,0,0);white.scale.set(1,.8,.52);eyeGroup.add(white);
+    const iris=mesh(new THREE.SphereGeometry(.026,16,12),new THREE.MeshStandardMaterial({color:0x4e7a4d,roughness:.3}),0,-.003,.034);iris.scale.z=.45;eyeGroup.add(iris);
+    const pupil=mesh(new THREE.SphereGeometry(.012,12,8),M.black,0,-.003,.044);pupil.scale.z=.4;eyeGroup.add(pupil);
+    const glint=mesh(new THREE.SphereGeometry(.006,8,6),new THREE.MeshBasicMaterial({color:0xffffff}),-.008,.006,.048);eyeGroup.add(glint);
+    eyeGroup.userData.iris=iris;eyeGroup.userData.pupil=pupil;eyeGroups.push(eyeGroup);
+  }
+  const brows=[];
+  for(const side of [-1,1]){
+    const brow=rounded(.125,.018,.025,.008,hairMat,side*.133,.157,.329,2);brow.rotation.z=side*-.07;headGroup.add(brow);brows.push(brow);
+  }
+  const mouthGroup=new THREE.Group();mouthGroup.position.set(0,-.173,.339);headGroup.add(mouthGroup);
+  const mouthCurve=new THREE.QuadraticBezierCurve3(new THREE.Vector3(-.066,0,0),new THREE.Vector3(0,-.036,0),new THREE.Vector3(.066,0,0));
+  const mouth=new THREE.Mesh(new THREE.TubeGeometry(mouthCurve,16,.008,6,false),lipMat);mouthGroup.add(mouth);
+  const lowerLip=mesh(new THREE.SphereGeometry(.052,16,8),lipMat,0,-.028,.002);lowerLip.scale.set(1,.25,.22);mouthGroup.add(lowerLip);
+  const earring=mesh(new THREE.TorusGeometry(.032,.006,6,18),M.gold,-.385,-.095,.045);earring.rotation.y=Math.PI/2;headGroup.add(earring);
+
+  const hitMesh=new THREE.Mesh(new THREE.SphereGeometry(.56,24,18),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false,colorWrite:false}));
+  hitMesh.name='headHit';headGroup.add(hitMesh);
+
+  world.client={root,headGroup,head,headMesh:head,jaw,eyeGroups,brows,mouthGroup,lowerLip,earring,hitMesh,materials:{skinMat,hairMat,capeMat,trouserMat,shoeMat,shirtMat,eyeWhiteMat,lipMat},body:{torso,shoulderCape,towel}};
+  world.headGroup=headGroup;world.headMesh=head;
+  root.position.y=-.7;root.visible=false;
+  return world.client;
+}
+
+function styleClient(){
+  const c=world.client;
+  c.materials.skinMat.color.set(state.client.skin);
+  c.materials.hairMat.color.set(state.client.hair);
+  c.materials.capeMat.color.set(state.client.cape);
+  c.materials.shirtMat.color.set(state.client.cape).multiplyScalar(.62);
+  c.materials.capeMat.roughness=rand(.26,.46);
+  c.materials.shoeMat.color.set(pick(['#161311','#241914','#2b2520']));
+  c.eyeGroups.forEach((g,i)=>{
+    const irisColor=state.client.eye;
+    g.userData.iris.material.color.set(irisColor);
+    g.userData.iris.rotation.set(0,0,0);
+    g.scale.y=1;
+  });
+  c.earring.visible=state.client.earring;
+  c.root.visible=true;
+  c.root.position.y=-.7;
+  c.headGroup.rotation.set(0,0,0);
+  c.brows.forEach(b=>{b.material=c.materials.hairMat;});
+}
+const HAIR_RX=.382,HAIR_RY=.414,HAIR_RZ=.365;
+const HAIR_UP=new THREE.Vector3(0,1,0),HAIR_DOWN=new THREE.Vector3(0,-1,0);
+function makeHairCapGeometry(){
+  const phiSeg=72,thetaSeg=18,pos=[],idx=[],uv=[];
+  for(let i=0;i<=phiSeg;i++){
+    const phi=i/phiSeg*Math.PI*2;
+    const maxTheta=1.02+.42*(1-Math.sin(phi))+Math.sin(phi*9)*.024+Math.sin(phi*17+1.3)*.014;
+    for(let j=0;j<=thetaSeg;j++){
+      const th=maxTheta*j/thetaSeg;
+      pos.push(Math.sin(th)*Math.cos(phi),Math.cos(th),Math.sin(th)*Math.sin(phi));
+      uv.push(i/phiSeg,j/thetaSeg);
+    }
+  }
+  for(let i=0;i<phiSeg;i++) for(let j=0;j<thetaSeg;j++){
+    const a=i*(thetaSeg+1)+j,b=a+1,c=a+thetaSeg+1,d=c+1;
+    idx.push(a,c,b,b,c,d);
+  }
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();return g;
+}
+function makeHairSurfaceTexture(){
+  const c=document.createElement('canvas');c.width=512;c.height=512;const ctx=c.getContext('2d');
+  ctx.fillStyle='#a2a2a2';ctx.fillRect(0,0,512,512);
+  for(let i=0;i<1800;i++){
+    const x=Math.random()*512,y=Math.random()*512,len=10+Math.random()*80;
+    const v=Math.random()<.5?0:255;
+    ctx.strokeStyle=`rgba(${v},${v},${v},${.03+Math.random()*.1})`;ctx.lineWidth=.6+Math.random()*2.2;
+    ctx.beginPath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x+Math.random()*8-4,y+len*.5,x+Math.random()*12-6,y+len);ctx.stroke();
+  }
+  const tex=new THREE.CanvasTexture(c);tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(4,2);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=8;return tex;
+}
+function makeHairAlphaTexture(){
+  const c=document.createElement('canvas');c.width=64;c.height=256;const ctx=c.getContext('2d');
+  const g=ctx.createLinearGradient(0,0,0,256);g.addColorStop(0,'#fff');g.addColorStop(.76,'#fff');g.addColorStop(.94,'#9b9b9b');g.addColorStop(1,'#000');
+  ctx.fillStyle=g;ctx.fillRect(0,0,64,256);
+  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.NoColorSpace;return tex;
+}
+function makeHairFiberGeometry(){
+  const radial=5,rings=5,pos=[],idx=[];
+  for(let r=0;r<=rings;r++){
+    const t=r/rings,rad=Math.pow(1-t,.72)*.5,bend=t*t*.13;
+    for(let a=0;a<radial;a++){
+      const ang=a/radial*Math.PI*2;
+      pos.push(Math.cos(ang)*rad,t,Math.sin(ang)*rad+bend);
+    }
+  }
+  for(let r=0;r<rings;r++) for(let a=0;a<radial;a++){
+    const n=(a+1)%radial,i0=r*radial+a,i1=r*radial+n,i2=(r+1)*radial+a,i3=(r+1)*radial+n;
+    idx.push(i0,i2,i1,i1,i2,i3);
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setIndex(idx);g.computeVertexNormals();return g;
+}
+
+function disposeHair(){
+  if(world.hairMeshes.length){
+    world.hairMeshes.forEach(m=>{world.headGroup.remove(m);m.geometry.dispose();m.material.dispose();m.dispose?.();});
+  }
+  if(world.hairCap){world.headGroup.remove(world.hairCap);world.hairCap.geometry.dispose();world.hairCap.material.dispose();world.hairCap=null;}
+  world.hairMeshes=[];world.fibers=[];world.beardFibers=[];
+}
+function targetLength(f,style){
+  if(f.kind==='beard') return style.beard;
+  if(f.kind==='mustache') return style.mustache;
+  if(f.zone==='top') return style.top;
+  const t=clamp((f.root.y+.02)/.4,0,1);
+  if(f.zone==='side') return style.fade?lerp(style.sideBottom,style.sideTop,t):style.sideTop;
+  return style.fade?lerp(style.backBottom,style.backTop,t):style.backTop;
+}
+function makeFiber(root,kind,zone,style,baseColor,baseLen){
+  const target=kind==='beard'||kind==='mustache'?targetLength({kind,root,zone},style):targetLength({kind,root,zone},style);
+  const len=Math.max(baseLen,target+rand(.1,.18));
+  const out=root.clone().normalize();
+  const back=new THREE.Vector3(0,0,-1);
+  const backTan=back.clone().addScaledVector(out,-out.dot(back)).normalize();
+  const downTan=HAIR_DOWN.clone().addScaledVector(out,-out.dot(HAIR_DOWN)).normalize();
+  let dir;
+  if(kind==='beard'){
+    dir=out.clone().multiplyScalar(.32).add(new THREE.Vector3(0,-.84,.12)).add(backTan.clone().multiplyScalar(-.08));
+  }else if(kind==='mustache'){
+    dir=out.clone().multiplyScalar(.28).add(new THREE.Vector3(0,-.72,.22));
+  }else if(zone==='top'){
+    const lift=clamp((style.top-.08)/.58,0,1);
+    const front=clamp((root.z-.04)/.3,0,1);
+    dir=backTan.clone().multiplyScalar(.92).add(downTan.clone().multiplyScalar(.05)).add(out.clone().multiplyScalar(.14));
+    dir.y+=lift*.08-front*.92;dir.y-=.1;
+  }else if(zone==='side'){
+    dir=downTan.clone().multiplyScalar(.84).add(backTan.clone().multiplyScalar(.18)).add(out.clone().multiplyScalar(.12));
+  }else{
+    dir=downTan.clone().multiplyScalar(.9).add(backTan.clone().multiplyScalar(.12)).add(out.clone().multiplyScalar(.12));
+  }
+  dir.x+=rand(-.05,.05);dir.y+=rand(-.035,.035);dir.z+=rand(-.05,.05);dir.normalize();
+  const q=new THREE.Quaternion().setFromUnitVectors(HAIR_UP,dir);
+  q.premultiply(new THREE.Quaternion().setFromAxisAngle(dir,rand(0,Math.PI*2)));
+  const col=new THREE.Color(baseColor).offsetHSL(0,.015,-.04).multiplyScalar(.7);
+  col.offsetHSL(rand(-.012,.012),rand(-.03,.03),rand(-.06,.06));
+  const wide=Math.random()<.14;
+  return {root:root.clone(),kind,zone,len,target,dir,q,width:wide?rand(.006,.0105):rand(.002,.0038),color:col,baseColor:new THREE.Color(baseColor),dyed:false,overcut:false,initialLen:len,mesh:null,i:0};
+}
+function buildHair(style){
+  disposeHair();
+  const hairBase=state.client.hair;
+  const scalp=[];
+  let guard=0;
+  while(scalp.length<1600 && guard<12000){
+    guard++;
+    const d=new THREE.Vector3(rand(-1,1),rand(-.15,1),rand(-1,1)).normalize();
+    if(d.y<-.08) continue;
+    const root=new THREE.Vector3(d.x*HAIR_RX,d.y*HAIR_RY,d.z*HAIR_RZ);
+    if(root.z>.10&&root.y<.16) continue;
+    if(root.y<-.02&&root.z>.30) continue;
+    let zone='side';
+    if(root.y/HAIR_RY>.27&&root.z>-.18) zone='top';
+    else if(root.z<-.10) zone='back';
+    const base=zone==='top'?rand(.35,.54):zone==='back'?rand(.22,.36):rand(.17,.3);
+    scalp.push(makeFiber(root,'scalp',zone,style,hairBase,base));
+  }
+  const beard=[];
+  guard=0;
+  while(beard.length<520 && guard<14000){
+    guard++;
+    const d=new THREE.Vector3(rand(-1,1),rand(-1,1),rand(-1,1)).normalize();
+    if(d.y>-.1||d.y<-.82||d.z<.02) continue;
+    const root=new THREE.Vector3(d.x*HAIR_RX,d.y*HAIR_RY,d.z*HAIR_RZ);
+    if(root.y<-.345) continue;
+    if(Math.abs(root.x)>.27&&root.y>-.22) continue;
+    const kind='beard';
+    beard.push(makeFiber(root,kind,'beard',style,hairBase,rand(.075,.145)));
+  }
+  guard=0;
+  while(beard.length<740 && guard<18000){
+    guard++;
+    const x=rand(-.125,.125);
+    const y=rand(-.135,-.055);
+    const z=HAIR_RZ*Math.sqrt(Math.max(0,1-(x/HAIR_RX)**2-(y/HAIR_RY)**2))+.008;
+    const root=new THREE.Vector3(x,y,z);
+    beard.push(makeFiber(root,'mustache','mustache',style,hairBase,rand(.06,.105)));
+  }
+  const geo=makeHairFiberGeometry();
+  const makeMesh=(fibers,shadow)=>{
+    const mat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.9,metalness:.01,envMapIntensity:.35,side:THREE.DoubleSide});
+    const m=new THREE.InstancedMesh(geo,mat,fibers.length);
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);m.castShadow=shadow;m.receiveShadow=false;m.frustumCulled=false;
+    fibers.forEach((f,i)=>{f.mesh=m;f.i=i;m.setColorAt(i,f.color);});
+    m.instanceColor.needsUpdate=true;
+    world.headGroup.add(m);
+    return m;
+  };
+  const capGeo=makeHairCapGeometry();capGeo.scale(HAIR_RX+.011,HAIR_RY+.012,HAIR_RZ+.011);
+  const capColor=new THREE.Color(hairBase).offsetHSL(0,.02,-.17).multiplyScalar(.86);
+  const capMat=new THREE.MeshStandardMaterial({map:makeHairSurfaceTexture(),alphaMap:makeHairAlphaTexture(),transparent:true,alphaTest:.02,color:capColor,roughness:.9,metalness:.01,envMapIntensity:.32,side:THREE.DoubleSide});
+  const hairCap=new THREE.Mesh(capGeo,capMat);hairCap.castShadow=false;hairCap.receiveShadow=true;hairCap.position.y=.004;
+  world.headGroup.add(hairCap);world.hairCap=hairCap;
+  const scalpMesh=makeMesh(scalp,true);
+  const beardMesh=makeMesh(beard,false);
+  world.hairMeshes=[scalpMesh,beardMesh];world.fibers=scalp;world.beardFibers=beard;
+  [...scalp,...beard].forEach(f=>{
+    f.target=targetLength(f,style);
+    f.len=Math.max(f.initialLen,f.target+.08);
+  });
+  [...scalp,...beard].forEach(writeFiber);
+  scalpMesh.instanceMatrix.needsUpdate=true;beardMesh.instanceMatrix.needsUpdate=true;
+}
+const _m4=new THREE.Matrix4(),_s3=new THREE.Vector3(),_q4=new THREE.Quaternion();
+function writeFiber(f){
+  const len=Math.max(f.len,.0015);
+  _s3.set(f.width,len,f.width);
+  _m4.compose(f.root,f.q,_s3);
+  f.mesh.setMatrixAt(f.i,_m4);
+}
+function writeFiberColor(f){
+  f.mesh.setColorAt(f.i,f.color);
+  if(f.mesh.instanceColor) f.mesh.instanceColor.needsUpdate=true;
+}
+function updateAllHair(){
+  world.fibers.concat(world.beardFibers).forEach(writeFiber);
+  world.hairMeshes.forEach(m=>m.instanceMatrix.needsUpdate=true);
+}
+function zoneAverages(){
+  const groups={top:[],side:[],back:[],beard:[],mustache:[]};
+  world.fibers.forEach(f=>groups[f.zone].push(f));
+  world.beardFibers.forEach(f=>groups[f.kind==='mustache'?'mustache':'beard'].push(f));
+  const scoreList=(list)=>{
+    if(!list.length) return 1;
+    let s=0;
+    list.forEach(f=>{s+=clamp(1-Math.abs(f.len-f.target)/.26,0,1);});
+    return s/list.length;
+  };
+  return {top:scoreList(groups.top),sides:scoreList(groups.side.concat(groups.back)),beard:scoreList(groups.beard.concat(groups.mustache))};
+}
+function colorDistance(a,b){
+  const dr=a.r-b.r,dg=a.g-b.g,db=a.b-b.b;
+  return Math.sqrt(dr*dr+dg*dg+db*db);
+}
+function computeMetrics(){
+  const zones=zoneAverages();
+  const all=world.fibers.concat(world.beardFibers);
+  const targetColor=state.style?.color?new THREE.Color(state.style.color):null;
+  let colorScore=1,dyedCount=0;
+  if(targetColor){
+    let sum=0;
+    world.fibers.forEach(f=>{if(f.dyed) dyedCount++;sum+=clamp(1-colorDistance(f.color,targetColor)/.5,0,1);});
+    colorScore=sum/Math.max(1,world.fibers.length);
+    if(hasUpgrade('dyeLab')) colorScore=Math.min(1,colorScore*1.08);
+  }else{
+    world.fibers.forEach(f=>{if(f.dyed) dyedCount++;});
+    const frac=dyedCount/Math.max(1,world.fibers.length);
+    colorScore=clamp(1-frac*.9,0,1);
+  }
+  state.dyedFraction=dyedCount/Math.max(1,world.fibers.length);
+  const hairScore=(zones.top*.28+zones.sides*.42+zones.beard*.3);
+  const comfortScore=clamp(state.comfort/100,0,1);
+  const patienceScore=clamp(state.patience/100,0,1);
+  let overall=hairScore*.62+colorScore*.14+comfortScore*.1+patienceScore*.14;
+  if(hasUpgrade('goldShears')) overall=Math.min(1,overall*1.07+.02);
+  overall=clamp(overall,0,1);
+  return {hairScore,zones,colorScore,comfortScore,patienceScore,overall};
+}
+function buildTools(){
+  const pivot=new THREE.Group();world.scene.add(pivot);world.toolPivot=pivot;
+  const body=new THREE.MeshStandardMaterial({color:0x1b2324,metalness:.72,roughness:.3});
+  const body2=new THREE.MeshStandardMaterial({color:0x263233,metalness:.62,roughness:.34});
+  const steel=new THREE.MeshStandardMaterial({color:0xd9dde0,metalness:1,roughness:.14});
+  const gold=new THREE.MeshPhysicalMaterial({color:0xe0b56b,metalness:1,roughness:.18,clearcoat:.5});
+  const led=new THREE.MeshBasicMaterial({color:0x63e8ff});
+  const models={};
+  const clippers=new THREE.Group();clippers.name='clippers';
+  clippers.add(rounded(.2,.1,.3,.04,body,0,0,-.14));
+  clippers.add(rounded(.19,.018,.12,.008,steel,0,-.035,.02));
+  for(let i=0;i<9;i++) clippers.add(box(.013,.017,.035,steel,-.075+i*.018,-.036,.082));
+  clippers.add(box(.045,.014,.09,gold,.065,.02,-.1));
+  clippers.add(cyl(.011,.011,.007,led,0,.052,-.2,10).rotateX(Math.PI/2));
+  clippers.add(box(.043,.008,.012,gold,0,.04,-.29));
+  models.clippers=clippers;
+  const trimmer=new THREE.Group();trimmer.name='trimmer';
+  trimmer.add(rounded(.145,.09,.24,.035,body2,0,0,-.12));
+  trimmer.add(rounded(.132,.016,.09,.006,steel,0,-.032,.02));
+  for(let i=0;i<7;i++) trimmer.add(box(.011,.014,.03,steel,-.053+i*.018,-.032,.073));
+  trimmer.add(box(.03,.012,.07,gold,.045,.018,-.08));
+  trimmer.add(cyl(.009,.009,.006,new THREE.MeshBasicMaterial({color:0xffc857}),0,.046,-.17,10).rotateX(Math.PI/2));
+  models.trimmer=trimmer;
+  const scissors=new THREE.Group();scissors.name='scissors';
+  const bladeMat=new THREE.MeshPhysicalMaterial({color:0xe5e7e4,metalness:1,roughness:.1,clearcoat:.6});
+  const leftBlade=new THREE.Group();const rightBlade=new THREE.Group();scissors.add(leftBlade,rightBlade);
+  const bladeL=rounded(.022,.012,.29,.006,bladeMat,0,0,.15,2);leftBlade.add(bladeL);
+  const bladeR=rounded(.022,.012,.29,.006,bladeMat,0,0,.15,2);rightBlade.add(bladeR);
+  const scissorPivot=cyl(.016,.016,.03,gold,0,0,0,14);scissorPivot.rotation.z=Math.PI/2;scissors.add(scissorPivot);
+  const ringL=mesh(new THREE.TorusGeometry(.043,.009,6,18),gold,-.055,0,-.08);ringL.rotation.y=Math.PI/2;leftBlade.add(ringL);
+  const ringR=mesh(new THREE.TorusGeometry(.043,.009,6,18),gold,.055,0,-.08);ringR.rotation.y=Math.PI/2;rightBlade.add(ringR);
+  leftBlade.rotation.y=.07;rightBlade.rotation.y=-.07;
+  scissors.userData.blades=[leftBlade,rightBlade];
+  models.scissors=scissors;
+  const razor=new THREE.Group();razor.name='razor';
+  const handle=rounded(.034,.06,.27,.028,body,0,-.015,-.1);handle.rotation.x=.05;razor.add(handle);
+  razor.add(rounded(.15,.018,.105,.012,steel,0,0,.04,3));
+  razor.add(box(.14,.004,.03,new THREE.MeshBasicMaterial({color:0xf3f5f4}),0,.012,.075));
+  razor.add(box(.045,.012,.04,gold,0,.02,-.23));
+  models.razor=razor;
+  const wash=new THREE.Group();wash.name='wash';
+  wash.add(rounded(.1,.14,.22,.045,body2,0,0,-.13));
+  wash.add(cyl(.06,.09,.17,steel,0,0,.03,20).rotateX(Math.PI/2));
+  wash.add(mesh(new THREE.TorusGeometry(.073,.01,6,24),new THREE.MeshBasicMaterial({color:0x63e8ff}),0,0,.105));
+  wash.add(cyl(.015,.015,.18,gold,0,-.11,-.09,12).rotateX(.35));
+  models.wash=wash;
+  const dye=new THREE.Group();dye.name='dye';
+  dye.add(rounded(.11,.17,.11,.03,body2,0,0,-.1));
+  dye.add(cyl(.028,.028,.06,gold,0,.11,-.05,14));
+  dye.add(cyl(.013,.018,.08,steel,0,.14,.02,12).rotateX(Math.PI/2));
+  const dyeLiquid=new THREE.MeshStandardMaterial({color:0x38e8d0,emissive:0x1b8a7e,emissiveIntensity:.5,roughness:.25});
+  dye.add(mesh(new THREE.SphereGeometry(.052,16,12),dyeLiquid,0,-.035,-.1));
+  dye.userData.liquid=dyeLiquid;
+  models.dye=dye;
+  Object.entries(models).forEach(([k,g])=>{
+    g.visible=k==='clippers';g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+    pivot.add(g);world.toolModels[k]=g;
+  });
+  const ringMat=new THREE.MeshBasicMaterial({color:0xffd99a,transparent:true,opacity:.9,depthTest:false,side:THREE.DoubleSide});
+  const ring=new THREE.Mesh(new THREE.RingGeometry(.9,1,48),ringMat);ring.renderOrder=20;ring.visible=false;world.scene.add(ring);world.cursorRing=ring;
+}
+function buildParticles(){
+  const count=170;
+  const geo=new THREE.BoxGeometry(.012,.06,.012);
+  const mat=new THREE.MeshStandardMaterial({roughness:.6,metalness:.03});
+  const meshP=new THREE.InstancedMesh(geo,mat,count);meshP.frustumCulled=false;meshP.castShadow=false;meshP.instanceMatrix.setUsage(THREE.DynamicDrawUsage);world.scene.add(meshP);
+  world.particles={mesh:meshP,items:[],cursor:0,dummy:new THREE.Object3D()};
+  for(let i=0;i<count;i++){
+    const item={active:false,pos:new THREE.Vector3(),vel:new THREE.Vector3(),rot:new THREE.Euler(),life:0,color:new THREE.Color(0x2a1a12),scale:1};
+    world.particles.items.push(item);
+    world.particles.dummy.position.set(0,-100,0);world.particles.dummy.scale.setScalar(0);world.particles.dummy.updateMatrix();meshP.setMatrixAt(i,world.particles.dummy.matrix);meshP.setColorAt(i,item.color);
+  }
+  meshP.instanceColor.needsUpdate=true;meshP.instanceMatrix.needsUpdate=true;
+
+  const mistCount=360;
+  const positions=new Float32Array(mistCount*3);
+  const colors=new Float32Array(mistCount*3);
+  const mgeo=new THREE.BufferGeometry();
+  mgeo.setAttribute('position',new THREE.BufferAttribute(positions,3));
+  mgeo.setAttribute('color',new THREE.BufferAttribute(colors,3));
+  const mmat=new THREE.PointsMaterial({size:.035,vertexColors:true,transparent:true,opacity:.72,depthWrite:false,blending:THREE.AdditiveBlending});
+  const mist=new THREE.Points(mgeo,mmat);mist.frustumCulled=false;world.scene.add(mist);
+  world.mist={mesh:mist,positions,colors,items:[],cursor:0};
+  for(let i=0;i<mistCount;i++){
+    world.mist.items.push({active:false,pos:new THREE.Vector3(0,-100,0),vel:new THREE.Vector3(),life:0,maxLife:1,gravity:0});
+    positions[i*3+1]=-100;
+  }
+  mgeo.attributes.position.needsUpdate=true;
+}
+function buildDust(){
+  const count=120;const pos=new Float32Array(count*3);
+  for(let i=0;i<count;i++){pos[i*3]=rand(-4.4,4.4);pos[i*3+1]=rand(.2,4.8);pos[i*3+2]=rand(-4,3.6);}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const mat=new THREE.PointsMaterial({color:0xf6dfb1,size:.018,transparent:true,opacity:.28,depthWrite:false,blending:THREE.AdditiveBlending});
+  const dust=new THREE.Points(geo,mat);world.scene.add(dust);world.dust=dust;
+}
+function spawnClippings(pos,color,count=3){
+  if(!world.particles) return;
+  const p=world.particles;
+  for(let n=0;n<count;n++){
+    const item=p.items[p.cursor];p.cursor=(p.cursor+1)%p.items.length;
+    item.active=true;item.life=rand(.7,1.5);item.pos.copy(pos).add(new THREE.Vector3(rand(-.05,.05),rand(-.03,.05),rand(-.05,.05)));
+    item.vel.set(rand(-.7,.7),rand(.2,1.3),rand(-.6,.6));item.scale=rand(.55,1.2);
+    item.rot.set(rand(0,6),rand(0,6),rand(0,6));item.color.set(color);
+    p.mesh.setColorAt(p.items.indexOf(item),item.color);
+  }
+  p.mesh.instanceColor.needsUpdate=true;
+}
+function spawnMist(pos,color,count=8,spread=.22,up=.26,gravity=.25){
+  if(!world.mist) return;
+  const m=world.mist;
+  for(let n=0;n<count;n++){
+    const idx=m.cursor;m.cursor=(m.cursor+1)%m.items.length;
+    const item=m.items[idx];item.active=true;item.life=rand(.4,.9);item.maxLife=item.life;
+    item.pos.set(pos.x+rand(-spread,spread),pos.y+rand(-spread,spread),pos.z+rand(-spread,spread));
+    item.vel.set(rand(-.5,.5),rand(.05,up),rand(-.5,.5));item.gravity=gravity;
+    const c=new THREE.Color(color);m.colors[idx*3]=c.r;m.colors[idx*3+1]=c.g;m.colors[idx*3+2]=c.b;
+  }
+  m.mesh.geometry.attributes.color.needsUpdate=true;
+}
+function updateParticles(dt){
+  if(world.particles){
+    const p=world.particles,d=p.dummy;
+    p.items.forEach((item,i)=>{
+      if(!item.active) return;
+      item.life-=dt;
+      if(item.life<=0){item.active=false;d.position.set(0,-100,0);d.scale.setScalar(0);d.rotation.set(0,0,0);}
+      else{
+        item.vel.y-=2.8*dt;item.pos.addScaledVector(item.vel,dt);
+        item.rot.x+=dt*item.vel.x*3;item.rot.z+=dt*item.vel.z*2;
+        if(item.pos.y<.04){item.pos.y=.04;item.vel.multiplyScalar(.25);item.vel.y=0;}
+        d.position.copy(item.pos);d.rotation.copy(item.rot);d.scale.setScalar(item.scale*Math.min(1,item.life*3));
+      }
+      d.updateMatrix();p.mesh.setMatrixAt(i,d.matrix);
+    });
+    p.mesh.instanceMatrix.needsUpdate=true;
+  }
+  if(world.mist){
+    const m=world.mist;let changed=false;
+    m.items.forEach((item,i)=>{
+      if(!item.active) return;
+      item.life-=dt;changed=true;
+      if(item.life<=0){item.active=false;m.positions[i*3+1]=-100;}
+      else{
+        item.vel.y-=item.gravity*dt;item.pos.addScaledVector(item.vel,dt);
+        m.positions[i*3]=item.pos.x;m.positions[i*3+1]=item.pos.y;m.positions[i*3+2]=item.pos.z;
+      }
+    });
+    if(changed) m.mesh.geometry.attributes.position.needsUpdate=true;
+  }
+  if(world.dust){world.dust.rotation.y+=dt*.0038;world.dust.position.y=Math.sin(state.time*.1)*.02;}
+}
+let shopReturn='start';
+function renderTools(){
+  dom.toolList.innerHTML=TOOLS.map(t=>`<button class="tool-btn${t.id===state.tool?' active':''}" data-tool="${t.id}" aria-label="${t.name}"><span class="keycap">${t.key}</span><svg class="icon"><use href="#i-${t.icon}"/></svg><span>${t.name}</span></button>`).join('');
+  dom.toolList.querySelectorAll('[data-tool]').forEach(btn=>btn.addEventListener('click',()=>selectTool(btn.dataset.tool)));
+  renderToolOptions();
+  updateHint();
+}
+function renderToolOptions(){
+  const tool=state.tool;
+  if(tool==='clippers'||tool==='trimmer'){
+    const lengths=tool==='clippers'?CLIPPER_LENGTHS:TRIM_LENGTHS;
+    dom.toolOptions.innerHTML=`<span class="option-label">${tool==='clippers'?'GUARD':'BEARD GUARD'}</span>`+GUARD_MM.map((mm,i)=>`<button class="guard-btn${i===state.guard?' active':''}" data-guard="${i}"><b>${mm}</b> mm</button>`).join('')+`<span class="option-note">${tool==='clippers'?'Skin → 10 mm':'Stubble → shape'}</span>`;
+    dom.toolOptions.querySelectorAll('[data-guard]').forEach(btn=>btn.addEventListener('click',()=>{
+      state.guard=Number(btn.dataset.guard);audio.click();
+      dom.toolOptions.querySelectorAll('[data-guard]').forEach(b=>b.classList.toggle('active',Number(b.dataset.guard)===state.guard));
+      updateHint();
+    }));
+  }else if(tool==='dye'){
+    const colors=availableDyeColors();
+    dom.toolOptions.innerHTML=`<span class="option-label">SPRAY SHADE</span>`+colors.map(c=>`<button class="dye-swatch${state.dye===c.hex?' active':''}" style="--swatch:${c.hex}" data-dye="${c.hex}" title="${c.name}" aria-label="${c.name} dye"></button>`).join('')+`<span class="option-note">${state.style?.colorName?'Request: '+state.style.colorName:'Mist the scalp evenly'}</span>`;
+    dom.toolOptions.querySelectorAll('[data-dye]').forEach(btn=>btn.addEventListener('click',()=>{
+      state.dye=btn.dataset.dye;audio.click();
+      dom.toolOptions.querySelectorAll('[data-dye]').forEach(b=>b.classList.toggle('active',b.dataset.dye===state.dye));
+      if(world.toolModels.dye) world.toolModels.dye.userData.liquid.color.set(state.dye);
+      updateHint();
+    }));
+  }else if(tool==='razor'){
+    dom.toolOptions.innerHTML=`<span class="option-label">STRAIGHT RAZOR</span><span class="option-note">Facial hair only · glide for a clean shave</span>`;
+  }else if(tool==='wash'){
+    dom.toolOptions.innerHTML=`<span class="option-label">WASH &amp; DRY</span><span class="option-note">Hold over the head to raise comfort and mood</span>`;
+  }else{
+    dom.toolOptions.innerHTML=`<span class="option-label">PRECISION SHEARS</span><span class="option-note">Light drags · perfect for top length and detail</span>`;
+  }
+}
+function selectTool(id){
+  if(!TOOLS.some(t=>t.id===id)||state.reveal) return;
+  state.tool=id;objectToolVisible();
+  dom.toolList.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===id));
+  renderToolOptions();updateHint();audio.resume();audio.click();
+  state.pointer.down=false;audio.setToolSound('',false);
+}
+function objectToolVisible(){
+  Object.entries(world.toolModels||{}).forEach(([k,m])=>m.visible=k===state.tool);
+  if(world.cursorRing){
+    const col=state.tool==='dye'?state.dye:state.tool==='wash'?'#79ecff':state.tool==='razor'?'#f0f3f4':'#ffd99a';
+    world.cursorRing.material.color.set(col);
+  }
+}
+function updateHint(){
+  const tool=TOOLS.find(t=>t.id===state.tool);if(!tool) return;
+  let extra='';
+  if(state.tool==='clippers') extra=` <span style="color:var(--gold)">Guard ${GUARD_MM[state.guard]} mm</span>`;
+  if(state.tool==='trimmer') extra=` <span style="color:var(--gold)">Guard ${GUARD_MM[state.guard]} mm</span>`;
+  if(state.tool==='dye') extra=` <span style="color:var(--gold)">${availableDyeColors().find(c=>c.hex===state.dye)?.name||'Custom'} shade</span>`;
+  dom.hintBar.innerHTML=`<svg class="icon"><use href="#i-bolt"/></svg><span>${tool.hint}${extra}</span>`;
+}
+function randomClient(){
+  const [name,vibe]=pick(NAMES);
+  return {
+    name,vibe,
+    initials:name.split(' ').map(w=>w[0]).join('').slice(0,2),
+    skin:pick(SKIN_TONES),hair:pick(HAIR_TONES),eye:pick(EYE_TONES),cape:pick(CAPE_TONES),
+    earring:Math.random()<.28
+  };
+}
+function randomStyle(){
+  const styles=unlockedStyles();
+  let style=pick(styles);
+  if(state.style&&styles.length>1) while(style.id===state.style.id) style=pick(styles);
+  return structuredClone(style);
+}
+function labelForLength(v){ return `${Math.round(v*40)} mm`; }
+function renderRequest(){
+  const style=state.style,client=state.client;
+  dom.clientName.textContent=client.name;dom.clientVibe.textContent=client.vibe;dom.clientAvatar.textContent=client.initials;
+  dom.requestStyle.textContent=style.name.toUpperCase();
+  const tagList=[...style.tags,`Top ${labelForLength(style.top)}`];
+  if(style.colorName) tagList.push(`${style.colorName} dye`);
+  if(style.beard===0) tagList.push('Clean shave');
+  dom.requestTags.innerHTML=tagList.slice(0,5).map(t=>t.includes('dye')?`<span class="tag dye" style="--tag-color:${style.color}">${t}</span>`:`<span class="tag">${t}</span>`).join('');
+  dom.clientNumber.textContent=String(state.session).padStart(2,'0');
+  dom.specColor.querySelector('span').textContent=style.colorName?'COLOR':'NATURAL';
+}
+function createNewClient(){
+  state.session++;
+  state.style=randomStyle();
+  state.client=randomClient();
+  state.patienceMax=hasUpgrade('hotTowel')?118:100;
+  state.patience=state.patienceMax;state.comfort=64;state.washAmount=0;state.overcut=0;state.everCut=false;state.dyedFraction=0;
+  state.tool='clippers';state.guard=1;state.dye=state.style.color||'#38e8d0';
+  state.chairTarget=0;world.chairRoot.rotation.y=0;state.spawnT=0;state.overall=0;
+  world.client.root.position.y=-.75;
+  styleClient();buildHair(state.style);
+  renderRequest();renderTools();objectToolVisible();updateMeters(true);
+  dom.hud.classList.remove('hidden');dom.finishBtn.classList.remove('hidden');dom.turnLeft.classList.remove('hidden');dom.turnRight.classList.remove('hidden');
+  dom.finishBtn.classList.add('pulse');
+  audio.setToolSound('',false);state.active=true;state.reveal=false;state.paused=false;
+}
+function startShift(){
+  audio.resume();audio.uiOpen();
+  state.started=true;
+  dom.startScreen.classList.add('hide');
+  dom.hud.classList.remove('hidden');
+  state.lastMeter=0;
+  createNewClient();
+  setTimeout(()=>toast(`Welcome back, boss. ${state.client.name.split(' ')[0]} is in the chair.`,'good'),650);
+  setTimeout(()=>toast('Drag across the hair to cut. Check the request card for the exact fade.',''),3400);
+}
+function nextClient(){
+  audio.uiOpen();
+  dom.resultModal.classList.remove('open');
+  dom.shopModal.classList.remove('open');
+  state.modalOpen=false;
+  dom.wipe.classList.remove('go');void dom.wipe.offsetWidth;dom.wipe.classList.add('go');
+  setTimeout(()=>{
+    createNewClient();
+    setTimeout(()=>toast(`${state.client.name.split(' ')[0]} takes the chair. Read the request.`,''),300);
+  },260);
+}
+function updateMeters(force=false){
+  if(!state.style||!world.fibers.length) return;
+  const now=performance.now();
+  if(!force&&now-state.lastMeter<170) return;
+  state.lastMeter=now;
+  const metrics=computeMetrics();
+  state.hairScore=metrics.hairScore;state.colorScore=metrics.colorScore;state.overall=metrics.overall;
+  state.satisfaction=Math.round((metrics.hairScore*.66+metrics.colorScore*.18+metrics.comfortScore*.16)*1000)/10;
+  const zones=metrics.zones;
+  const vals={top:zones.top,sides:zones.sides,beard:zones.beard,color:metrics.colorScore};
+  [['specTop','top'],['specSides','sides'],['specBeard','beard'],['specColor','color']].forEach(([id,key])=>{
+    const el=dom[id],pct=clamp(vals[key],0,1)*100,bar=el.querySelector('i'),b=el.querySelector('b');
+    bar.style.width=`${pct}%`;b.textContent=`${Math.round(pct)}%`;
+    el.classList.toggle('low',pct<42);el.classList.toggle('perfect',pct>88);
+  });
+  if(world.hairCap){
+    let topSum=0,topCount=0;
+    world.fibers.forEach(f=>{if(f.zone==='top'){topSum+=f.len;topCount++;}});
+    const avg=topCount?topSum/topCount:0;
+    world.hairCap.material.opacity=clamp(.2+avg*2.1,.2,1);
+  }
+  const pPercent=clamp(state.patience/state.patienceMax,0,1)*100;
+  dom.patienceFill.style.width=`${pPercent}%`;dom.patienceVal.textContent=`${Math.ceil(pPercent)}%`;
+  dom.patienceMeter.classList.toggle('alert',pPercent<28);
+  dom.moodFill.style.width=`${clamp(state.satisfaction,0,100)}%`;
+  dom.moodVal.textContent=`${Math.round(state.satisfaction)}%`;
+  dom.moodMeter.classList.toggle('alert',state.satisfaction<36);
+}
+function openShop(returnTo){
+  if(state.finishQueued||state.reveal&&returnTo!=='result') return;
+  shopReturn=returnTo;
+  if(returnTo==='game'&&state.active) state.paused=true;
+  if(returnTo==='result') dom.resultModal.classList.remove('open');
+  renderShop();
+  dom.shopModal.classList.add('open');state.modalOpen=true;audio.resume();audio.uiOpen();
+}
+function closeShop(){
+  dom.shopModal.classList.remove('open');state.modalOpen=false;
+  if(shopReturn==='game'&&state.active) state.paused=false;
+  if(shopReturn==='result') dom.resultModal.classList.add('open');
+  audio.click();
+}
+function renderShop(){
+  const groups=[['tools','Tools & Comfort'],['neon','Neon & Studio'],['styles','Signature Styles']];
+  dom.shopScroll.innerHTML=groups.map(([cat,label])=>{
+    const items=SHOP_ITEMS.filter(i=>i.cat===cat);
+    const cards=items.map(item=>{
+      const isOwned=hasUpgrade(item.id);
+      const equipped=item.neon&&profile.neon===item.neon;
+      const cls=equipped?'equipped':isOwned?'owned':'';
+      const neonStyle=item.neon?`style="--neon:${NEON[item.neon].color}"`:'';
+      let button;
+      if(equipped) button=`<button class="buy-btn equipped" disabled>EQUIPPED</button>`;
+      else if(isOwned&&item.neon) button=`<button class="buy-btn equip" data-equip="${item.id}">EQUIP</button>`;
+      else if(isOwned) button=`<button class="buy-btn equipped" disabled>OWNED</button>`;
+      else button=`<button class="buy-btn" data-buy="${item.id}" ${profile.coins<item.price?'disabled':''}>BUY</button>`;
+      return `<article class="shop-card ${cls}">${item.neon?`<span class="neon-strip" style="--neon:${NEON[item.neon].color}"></span>`:''}<div class="shop-icon"><svg class="icon"><use href="#i-${item.icon}"/></svg></div><div><h4>${item.name}</h4><p>${item.desc}</p></div><div class="shop-foot"><span class="shop-price"><span class="coin-orb">¢</span>${isOwned?'—':item.price}</span>${button}</div></article>`;
+    }).join('');
+    return `<section class="shop-section"><div class="shop-section-head"><h3>${label}</h3><span>${items.length} items</span></div><div class="shop-grid">${cards}</div></section>`;
+  }).join('');
+  dom.shopCoins.textContent=profile.coins.toLocaleString();
+  dom.shopScroll.querySelectorAll('[data-buy]').forEach(btn=>btn.addEventListener('click',()=>buyItem(btn.dataset.buy)));
+  dom.shopScroll.querySelectorAll('[data-equip]').forEach(btn=>btn.addEventListener('click',()=>equipNeon(btn.dataset.equip)));
+}
+function buyItem(id){
+  const item=SHOP_ITEMS.find(i=>i.id===id);
+  if(!item||hasUpgrade(id)||profile.coins<item.price) return;
+  profile.coins-=item.price;profile.upgrades[id]=true;
+  if(item.neon){
+    profile.neon=item.neon;applyNeon(item.neon);
+  }
+  updateCoinUI(true);persist();audio.coin();
+  if(id==='goldShears'){
+    world.toolModels.scissors.traverse(o=>{if(o.isMesh&&o.material&&o.material.metalness===1)o.material.color.set(0xffd27a);});
+  }
+  if(id==='dyeLab'&&state.style) renderToolOptions();
+  renderShop();updateStartStats();
+  toast(`${item.name} unlocked.`,'good');
+}
+function equipNeon(itemId){
+  const item=SHOP_ITEMS.find(i=>i.id===itemId);if(!item?.neon) return;
+  applyNeon(item.neon,true);renderShop();audio.click();
+}
+function finishCut(){
+  if(!state.active||state.paused||state.reveal||state.finishQueued) return;
+  state.finishQueued=true;state.active=false;state.reveal=true;state.revealT=0;
+  state.pointer.down=false;state.pointer.valid=false;audio.setToolSound('',false);
+  const metrics=computeMetrics();const overall=metrics.overall;
+  const stars=overall>=.88?5:overall>=.72?4:overall>=.56?3:overall>=.38?2:1;
+  const base=30+state.style.difficulty*7;
+  const starBonus=stars*12;
+  const tip=Math.round(clamp(state.patience/state.patienceMax,0,1)*16+metrics.hairScore*28+Math.max(0,state.comfort-55)*.16+(state.style.signature?8:0));
+  let total=base+starBonus+tip;
+  if(hasUpgrade('goldShears')) total=Math.round(total*1.1);
+  if(hasUpgrade('styleCrop')&&state.style.signature) total=Math.round(total*1.08);
+  if(hasUpgrade('stylePomp')&&state.style.signature) total=Math.round(total*1.08);
+  state.metrics=metrics;state.payout={stars,base,starBonus,tip,total,overall};
+  profile.coins+=total;profile.stats.cuts++;profile.stats.sessions++;profile.stats.best=Math.max(profile.stats.best,stars);persist();
+  updateCoinUI(true);updateStartStats();
+  state.snapshot=null;
+  dom.hud.classList.add('hidden');
+  dom.finishBtn.classList.add('hidden');
+  dom.revealFlash.classList.remove('flash');void dom.revealFlash.offsetWidth;dom.revealFlash.classList.add('flash');
+  audio.cash();spawnMist(world.headGroup.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,.25,.3)),'#ffd99a',55,.6,.8,.05);
+  setTimeout(openResult,900);
+}
+function openResult(){
+  const p=state.payout;
+  world.composer.render();
+  try{state.snapshot=world.renderer.domElement.toDataURL('image/jpeg',.92);dom.resultPhoto.src=state.snapshot;}catch(e){}
+  dom.photoStyle.textContent=state.style.name;
+  dom.photoDate.innerHTML=`WALK-IN ${String(state.session).padStart(2,'0')}<br>FADEHOUSE BARBER CO.`;
+  dom.resultTitle.innerHTML=`${p.stars>=4?'Sharp work':'Good effort'}, <em>${state.client.name.split(' ')[0]}.</em>`;
+  dom.resultStars.innerHTML=Array.from({length:5},(_,i)=>`<svg class="icon star-icon${i<p.stars?' on':''}" style="transition-delay:${i*.08}s"><use href="#i-star"/></svg>`).join('');
+  const words=['ROUGH START','NEEDS WORK','SOLID CUT','CLEAN WORK','MASTERPIECE'];
+  dom.ratingWord.textContent=words[p.stars-1];
+  const quotes=[
+    '"We can fix this. I think."',
+    '"Not quite my usual, but I can work with it."',
+    '"Solid cut. I will be back next month."',
+    '"Now that is a clean fade. Very nice."',
+    '"This is the best cut I have had in years."'
+  ];
+  dom.ratingQuote.textContent=quotes[p.stars-1];
+  dom.payBase.textContent=`$${p.base}`;dom.payStars.textContent=`$${p.starBonus}`;dom.payTip.textContent=`$${p.tip}`;dom.payTotal.textContent=`$${p.total}`;
+  dom.resultModal.classList.add('open');state.modalOpen=true;state.revealT=0;
+  [...dom.resultStars.children].forEach((el,i)=>{if(i<p.stars) setTimeout(()=>audio.star(i),200+i*110);});
+  state.finishQueued=false;
+}
+function closeResultForShop(){
+  dom.resultModal.classList.remove('open');
+  openShop('result');
+}
+function savePhoto(){
+  if(!state.snapshot){world.composer.render();try{state.snapshot=world.renderer.domElement.toDataURL('image/jpeg',.92);}catch(e){return;}}
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement('canvas');c.width=1080;c.height=1350;const ctx=c.getContext('2d');
+    const scale=Math.max(c.width/img.width,c.height/img.height),w=img.width*scale,h=img.height*scale;
+    ctx.drawImage(img,(c.width-w)/2,(c.height-h)/2,w,h);
+    const g=ctx.createLinearGradient(0,1000,0,1350);g.addColorStop(0,'rgba(4,12,11,0)');g.addColorStop(1,'rgba(4,12,11,.92)');
+    ctx.fillStyle=g;ctx.fillRect(0,900,c.width,450);
+    ctx.fillStyle='#f4e8d3';ctx.font='700 64px "Bodoni Moda", serif';ctx.textAlign='left';ctx.fillText(state.style.name,64,1190);
+    ctx.fillStyle='#e7b86b';ctx.font='500 30px "Bebas Neue", sans-serif';ctx.fillText('FADEHOUSE BARBER CO.  ·  HOUSE CUT',64,1245);
+    ctx.textAlign='right';ctx.fillStyle='#e7b86b';ctx.font='700 42px "Bodoni Moda", serif';ctx.fillText('★'.repeat(state.payout.stars),1016,1190);
+    const a=document.createElement('a');a.download=`fadehouse-${state.client.name.split(' ')[0].toLowerCase()}.jpg`;a.href=c.toDataURL('image/jpeg',.92);a.click();
+    toast('Look saved to your gallery.','good');audio.click();
+  };img.src=state.snapshot;
+}
+const raycaster=new THREE.Raycaster();
+const ndc=new THREE.Vector2();
+let lastOvercutToast=0;
+function updatePointerFromEvent(e){
+  if(!state.active||state.paused||state.reveal) return;
+  const rect=world.renderer.domElement.getBoundingClientRect();
+  ndc.x=((e.clientX-rect.left)/rect.width)*2-1;
+  ndc.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  world.camera.updateMatrixWorld();
+  world.headGroup.updateWorldMatrix(true,true);
+  raycaster.setFromCamera(ndc,world.camera);
+  const hits=raycaster.intersectObject(world.client.hitMesh,false);
+  if(!hits.length){state.pointer.valid=false;state.pointer.over=false;return;}
+  const hit=hits[0];
+  state.pointer.valid=true;state.pointer.over=true;
+  const surface=world.headGroup.worldToLocal(hit.point.clone()).normalize().multiplyScalar(.392);
+  state.pointer.local.copy(surface);
+  state.pointer.normal.copy(surface).normalize();
+  state.pointer.world.copy(world.headGroup.localToWorld(surface.clone()));
+  if(state.tool==='razor'||state.tool==='trimmer'){
+    const y=state.pointer.local.y;
+    if(y>.12){state.pointer.valid=false;state.pointer.over=true;}
+  }
+  if(state.tool==='dye'||state.tool==='clippers'){
+    if(state.pointer.local.y<-.2&&state.pointer.local.z>.05){state.pointer.over=true;state.pointer.valid=false;}
+  }
+}
+function onPointerDown(e){
+  if(!state.started||!state.active||state.paused||state.reveal||state.modalOpen) return;
+  audio.resume();audio.click();
+  state.pointer.id=e.pointerId;updatePointerFromEvent(e);
+  if(state.pointer.valid){
+    state.pointer.down=true;
+    try{world.renderer.domElement.setPointerCapture(e.pointerId);}catch(err){}
+  }
+}
+function onPointerMove(e){
+  if(!state.active||state.paused||state.reveal) return;
+  if(e.pointerType==='touch'&&!state.pointer.down) return;
+  updatePointerFromEvent(e);
+}
+function onPointerUp(e){
+  if(state.pointer.id===e.pointerId||e.pointerType==='mouse'){
+    state.pointer.down=false;audio.setToolSound('',false);
+    try{world.renderer.domElement.releasePointerCapture(e.pointerId);}catch(err){}
+  }
+}
+function onPointerLeave(){
+  if(!state.pointer.down){state.pointer.over=false;state.pointer.valid=false;audio.setToolSound('',false);}
+}
+function applyCut(dt){
+  if(!state.active||state.paused||state.reveal||state.modalOpen||!state.pointer.down||!state.pointer.valid) return;
+  const tool=state.tool,radius=TOOL_RADIUS[tool],local=state.pointer.local;
+  const turbo=hasUpgrade('turboClippers')?1.55:1;
+  let touched=0,changed=false,colorChanged=false;
+  const now=performance.now();
+  const all=world.fibers.concat(world.beardFibers);
+  for(const f of all){
+    if(f.root.distanceToSquared(local)>radius*radius) continue;
+    if((tool==='razor'||tool==='trimmer')&&f.kind!=='beard'&&f.kind!=='mustache') continue;
+    if((tool==='clippers'||tool==='dye')&&f.kind!=='scalp') continue;
+    touched++;
+    let cut=false;
+    if(tool==='clippers'){
+      const target=CLIPPER_LENGTHS[state.guard];
+      if(f.len>target){f.len=Math.max(target,f.len-dt*2.15*turbo);cut=true;changed=true;}
+    }else if(tool==='trimmer'){
+      const target=TRIM_LENGTHS[state.guard];
+      if(f.len>target){f.len=Math.max(target,f.len-dt*2.35*turbo);cut=true;changed=true;}
+    }else if(tool==='scissors'){
+      if(f.len>.004){f.len=Math.max(0,f.len-dt*.46);cut=true;changed=true;}
+    }else if(tool==='razor'){
+      if(f.len>.002){f.len=Math.max(0,f.len-dt*3.05);cut=true;changed=true;}
+    }else if(tool==='dye'){
+      const target=new THREE.Color(state.dye);
+      if(colorDistance(f.color,target)>.01){f.color.lerp(target,Math.min(1,dt*2.7));f.dyed=true;changed=false;colorChanged=true;}
+    }else if(tool==='wash'){
+      state.comfort=Math.min(100,state.comfort+dt*10);
+      state.washAmount=Math.min(100,state.washAmount+dt*12);
+      state.patience=Math.min(state.patienceMax,state.patience+dt*.4);
+      cut=true;
+    }
+    if(cut){
+      if(f.len<f.target-.085&&!f.overcut&&tool!=='wash'&&tool!=='dye'){
+        f.overcut=true;state.overcut++;
+        if(now-lastOvercutToast>4500){lastOvercutToast=now;state.patience=Math.max(0,state.patience-2);toast('That is shorter than requested. Ease off.','bad');audio.tone(130,.14,'sawtooth',.04);}
+      }
+      if(state.tool!=='wash'&&state.tool!=='dye') state.everCut=true;
+    }
+  }
+  if(changed) [...world.hairMeshes].forEach(m=>{m.instanceMatrix.needsUpdate=true;});
+  if(colorChanged){
+    const meshes=new Set();world.fibers.forEach(f=>meshes.add(f.mesh));
+    world.fibers.forEach(f=>{if(f.dyed)f.mesh.setColorAt(f.i,f.color);});
+    meshes.forEach(m=>{if(m.instanceColor)m.instanceColor.needsUpdate=true;});
+    if(world.hairCap) world.hairCap.material.color.lerp(new THREE.Color(state.dye),Math.min(1,dt*2.7));
+  }
+  const activeCut=touched>0&&(changed||tool==='wash'||tool==='dye');
+  audio.setToolSound(tool,activeCut);
+  if(activeCut){
+    state.buzzTimer-=dt;
+    if(state.buzzTimer<=0){
+      state.buzzTimer=tool==='wash'?.055:.042;
+      const col=tool==='dye'?state.dye:tool==='wash'?'#aeefff':tool==='razor'?'#f6efe0':state.client.hair;
+      spawnClippings(state.pointer.world,col,tool==='wash'||tool==='dye'?0:2);
+      if(tool==='wash') spawnMist(state.pointer.world,'#aeefff',3,.08,.35,.1);
+      if(tool==='dye') spawnMist(state.pointer.world,state.dye,5,.08,.28,.2);
+      if(tool==='razor') spawnMist(state.pointer.world,'#fff4df',3,.07,.2,.1);
+    }
+    if(tool==='scissors'){
+      state.snipTimer-=dt;
+      if(state.snipTimer<=0){state.snipTimer=.23;audio.snip();}
+    }
+    if(tool==='wash'&&Math.random()<.08) spawnMist(state.pointer.world,'#c9f7ff',1,.12,.4,.05);
+  }
+  if(touched>0&&tool==='dye'&&Math.random()<.04) floatScore('COLOR');
+  if(now-state.lastFloat>9000&&state.hairScore>.82){state.lastFloat=now;floatScore('CLEAN WORK');}
+}
+function turnChair(dir){
+  if(!state.active||state.paused||state.reveal) return;
+  state.chairTarget+=dir*Math.PI/2;audio.click();
+}
+function updateCamera(dt){
+  const cam=world.camera;
+  if(!state.started){
+    const a=state.time*.075;
+    cam.position.lerp(new THREE.Vector3(Math.sin(a)*4.75,1.82+Math.sin(state.time*.3)*.035,Math.cos(a)*4.75),1-Math.exp(-dt*1.3));
+    cam.lookAt(0,1.52,0);
+  }else if(state.reveal){
+    state.revealT+=dt;
+    const a=.36+Math.sin(state.revealT*.75)*.12;
+    const dist=cam.aspect<.75?3.2:cam.aspect<1.15?2.85:2.5;
+    const desired=new THREE.Vector3(Math.sin(a)*dist,1.98+Math.sin(state.revealT*.5)*.03,Math.cos(a)*dist);
+    cam.position.lerp(desired,1-Math.exp(-dt*2.4));
+    cam.lookAt(0,1.88,0);
+  }else{
+    const target=world.baseCamera.clone();
+    target.x+=world.parallax.x*.18;target.y+=world.parallax.y*-.08;
+    cam.position.lerp(target,1-Math.exp(-dt*3.8));
+    cam.lookAt(world.lookTarget);
+  }
+}
+function updateToolAndCursor(dt){
+  if(!world.toolPivot) return;
+  const pivot=world.toolPivot,ring=world.cursorRing;
+  const show=state.active&&!state.reveal&&!state.modalOpen;
+  pivot.visible=show;ring.visible=false;
+  Object.entries(world.toolModels).forEach(([k,m])=>m.visible=k===state.tool);
+  if(!show) return;
+  world.headGroup.updateWorldMatrix(true,true);
+  if(state.pointer.valid){
+    const n=state.pointer.normal.clone().transformDirection(world.headGroup.matrixWorld).normalize();
+    const right=new THREE.Vector3().setFromMatrixColumn(world.camera.matrixWorld,0);
+    const target=state.pointer.world.clone().addScaledVector(n,.26).addScaledVector(right,.05);
+    if(state.pointer.down){target.x+=rand(-.003,.003);target.y+=rand(-.003,.003);target.z+=rand(-.002,.002);}
+    pivot.position.lerp(target,1-Math.exp(-dt*20));
+    pivot.lookAt(state.pointer.world.clone().addScaledVector(n,.02));
+    pivot.rotateY(Math.sin(state.time*1.4)*.04);
+    if(state.pointer.down&&!state.paused){
+      ring.visible=true;
+      ring.position.copy(state.pointer.world).addScaledVector(n,.012);
+      ring.quaternion.setFromUnitVectors(Z_AXIS,n);
+      const s=TOOL_RADIUS[state.tool]*(1.05+Math.sin(state.time*9)*.04);
+      ring.scale.setScalar(s);
+      ring.material.opacity=.62+Math.sin(state.time*7)*.18;
+    }
+  }else{
+    const rest=world.headGroup.localToWorld(new THREE.Vector3(.82,.32,.75));
+    rest.y+=Math.sin(state.time*1.4)*.025;
+    pivot.position.lerp(rest,1-Math.exp(-dt*5));
+    const look=world.headGroup.localToWorld(new THREE.Vector3(.1,.03,.1));
+    pivot.lookAt(look);
+    pivot.rotateY(-.32);
+  }
+  if(state.tool==='scissors'){
+    const [a,b]=world.toolModels.scissors.userData.blades;
+    if(state.pointer.down&&state.pointer.valid){
+      const open=.06+Math.sin(state.time*28)*.055;a.rotation.y=open;b.rotation.y=-open;
+    }else{a.rotation.y=.07;b.rotation.y=-.07;}
+  }
+}
+function updateClient(dt){
+  if(!state.client||!world.client) return;
+  const c=world.client;
+  if(state.spawnT<1){
+    state.spawnT=Math.min(1,state.spawnT+dt*1.65);
+    const e=easeOutCubic(state.spawnT);
+    c.root.position.y=lerp(-.75,0,e);
+  }
+  const t=state.time;
+  c.headGroup.rotation.y=Math.sin(t*.62)*.02;
+  c.headGroup.rotation.x=Math.sin(t*.47)*.008;
+  c.headGroup.position.y=1.93+Math.sin(t*1.2)*.006;
+  c.body.torso.scale.y=1+Math.sin(t*1.2)*.006;
+  c.body.shoulderCape.scale.y=.34+Math.sin(t*1.2)*.002;
+  const mood=state.satisfaction;
+  const smile=clamp((mood-32)/60,0,1);
+  c.mouthGroup.scale.y=lerp(.65,1.2,smile);
+  c.mouthGroup.rotation.z=lerp(.03,0,smile);
+  c.brows.forEach((b,i)=>{b.rotation.z=(i===0?1:-1)*lerp(.12,.02,smile);b.position.y=lerp(.152,.162,smile);});
+  state.blink.t-=dt;
+  if(state.blink.t<=0){state.blink.next=rand(2.4,6);state.blink.t=state.blink.next;state.blink.active=.63;}
+  if(state.blink.active>0){state.blink.active-=dt;c.eyeGroups.forEach(g=>g.scale.y=Math.max(.08,Math.abs(Math.sin((.63-state.blink.active)*30))*1));}
+  else c.eyeGroups.forEach(g=>g.scale.y=1);
+  c.eyeGroups.forEach((g,i)=>{g.userData.pupil.position.x=Math.sin(t*.8+i)*.003;g.userData.pupil.position.y=Math.cos(t*.65+i)*.002;});
+  const chairDelta=state.chairTarget-world.chairRoot.rotation.y;
+  world.chairRoot.rotation.y+=chairDelta*Math.min(1,dt*6.5);
+  if(state.reveal){
+    const p=state.payout;
+    c.mouthGroup.scale.y=p&&p.stars>=4?1.22:lerp(.8,1,.5);
+    c.brows.forEach((b,i)=>b.rotation.z=(i===0?1:-1)*.02);
+  }
+}
+function updateSign(){
+  if(!world.signPlane) return;
+  const flicker=(Math.sin(state.time*3.1)*.03+Math.sin(state.time*17.3)*.014);
+  world.signPlane.material.opacity=.94+flicker;
+  if(world.signLight) world.signLight.intensity=16+Math.sin(state.time*5.2)*1.2;
+}
+function drainPatience(dt){
+  if(!state.active||state.paused||state.reveal||state.modalOpen) return;
+  const rate=1.05*(hasUpgrade('aroma')?.75:1);
+  state.patience=Math.max(0,state.patience-rate*dt);
+  if(state.patience<=0) finishCut();
+}
+function setupEvents(){
+  $('#openShopBtn').addEventListener('click',startShift);
+  dom.startShopBtn.addEventListener('click',()=>{startShopBtnClick();});
+  dom.startSoundBtn.addEventListener('click',toggleSound);
+  dom.soundBtn.addEventListener('click',toggleSound);
+  dom.resultSoundBtn.addEventListener('click',toggleSound);
+  dom.hudShopBtn.addEventListener('click',()=>openShop('game'));
+  dom.helpBtn.addEventListener('click',()=>{state.modalOpen=true;if(state.active)state.paused=true;dom.helpModal.classList.add('open');audio.resume();audio.uiOpen();});
+  dom.helpClose.addEventListener('click',()=>{dom.helpModal.classList.remove('open');state.modalOpen=false;if(state.active)state.paused=false;audio.click();});
+  dom.finishBtn.addEventListener('click',finishCut);
+  dom.turnLeft.addEventListener('click',()=>turnChair(-1));
+  dom.turnRight.addEventListener('click',()=>turnChair(1));
+  dom.shopClose.addEventListener('click',closeShop);
+  dom.shopModal.addEventListener('click',e=>{if(e.target===dom.shopModal)closeShop();});
+  dom.helpModal.addEventListener('click',e=>{if(e.target===dom.helpModal){dom.helpModal.classList.remove('open');state.modalOpen=false;if(state.active)state.paused=false;}});
+  dom.resultShopBtn.addEventListener('click',closeResultForShop);
+  dom.nextClientBtn.addEventListener('click',()=>{
+    if(dom.shopModal.classList.contains('open')){dom.shopModal.classList.remove('open');}
+    state.modalOpen=false;nextClient();
+  });
+  dom.savePhotoBtn.addEventListener('click',savePhoto);
+  dom.canvas.addEventListener('pointerdown',onPointerDown);
+  dom.canvas.addEventListener('pointermove',onPointerMove);
+  dom.canvas.addEventListener('pointerup',onPointerUp);
+  dom.canvas.addEventListener('pointercancel',onPointerUp);
+  dom.canvas.addEventListener('pointerleave',onPointerLeave);
+  dom.canvas.addEventListener('contextmenu',e=>e.preventDefault());
+  window.addEventListener('resize',onResize);
+  window.addEventListener('pointermove',e=>{
+    const x=(e.clientX/window.innerWidth)*2-1,y=(e.clientY/window.innerHeight)*2-1;
+    world.parallax.x=lerp(world.parallax.x,x,.08);world.parallax.y=lerp(world.parallax.y,y,.08);
+  });
+  window.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){
+      if(dom.shopModal.classList.contains('open')) closeShop();
+      else if(dom.helpModal.classList.contains('open')){dom.helpModal.classList.remove('open');state.modalOpen=false;if(state.active)state.paused=false;}
+      return;
+    }
+    if(dom.shopModal.classList.contains('open')||dom.helpModal.classList.contains('open')||state.reveal||!state.started) return;
+    const tool=TOOLS[Number(e.key)-1];if(tool){selectTool(tool.id);return;}
+    if(e.key==='['){state.guard=(state.guard+3)%4;renderToolOptions();updateHint();audio.click();}
+    if(e.key===']'){state.guard=(state.guard+1)%4;renderToolOptions();updateHint();audio.click();}
+    if(e.key.toLowerCase()==='f') finishCut();
+    if(e.key.toLowerCase()==='s') openShop('game');
+    if(e.key.toLowerCase()==='q') turnChair(-1);
+    if(e.key.toLowerCase()==='e') turnChair(1);
+    if(e.key.toLowerCase()==='m') toggleSound();
+  });
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)audio.setToolSound('',false);});
+}
+function onResize(){
+  const w=window.innerWidth,h=window.innerHeight;
+  world.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,w<800?2:1.8));
+  world.renderer.setSize(w,h,false);
+  world.composer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.6));
+  world.composer.setSize(w,h);
+  world.camera.aspect=w/h;
+  world.camera.fov=w/h<.75?48:w/h<1.15?41:37;
+  world.camera.updateProjectionMatrix();
+  const portrait=w/h<.72;
+  if(world.signPlane) world.signPlane.scale.setScalar(portrait?.5:1);
+  if(world.mirrorFrame) world.mirrorFrame.scale.x=portrait?.8:1;
+  world.baseCamera.set(0,w/h<.75?1.87:w/h<1.15?1.82:1.78,w/h<.75?5.35:w/h<1.15?5.02:4.8);
+  world.lookTarget.set(0,w/h<.75?1.42:1.5,0);
+}
+function startShopBtnClick(){
+  audio.resume();dom.startShopBtn.blur();openShop('start');
+}
+function boot(){
+  buildLighting();
+  buildRoom();
+  onResize();
+  updateCoinUI();updateStartStats();setSoundIcon();
+  renderTools();objectToolVisible();
+  dom.loader.classList.add('done');
+  dom.startScreen.classList.remove('hide');
+  setupEvents();
+  const clock=new THREE.Clock();
+  let elapsed=0;
+  function frame(){
+    requestAnimationFrame(frame);
+    const dt=Math.min(clock.getDelta(),.05);
+    elapsed+=dt;state.time=elapsed;
+    if(state.active&&!state.paused&&!state.modalOpen&&!state.reveal){
+      drainPatience(dt);applyCut(dt);
+    }else{
+      audio.setToolSound('',false);
+    }
+    updateClient(dt);updateCamera(dt);updateToolAndCursor(dt);updateParticles(dt);updateSign();
+    if(state.active&&!state.reveal) updateMeters();
+    world.composer.render();
+  }
+  frame();
+  window.__FADEHOUSE.world=world;window.__FADEHOUSE.state=state;window.__FADEHOUSE.profile=profile;
+  window.__FADEHOUSE.actions={startShift,createNewClient,finishCut,computeMetrics,updateMeters,openShop,nextClient,selectTool,turnChair,savePhoto};
+  window.__FADEHOUSE.perfect=()=>{
+    world.fibers.concat(world.beardFibers).forEach(f=>{f.len=f.target;});
+    updateAllHair();updateMeters(true);
+  };
+  window.__FADEHOUSE.addCoins=n=>{profile.coins+=n;persist();updateCoinUI(true);};
+}
+boot();
+
+</script>
+</body>
+</html>
